@@ -1,0 +1,1 @@
+NewsCurator App for CIS4930
