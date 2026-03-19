@@ -2,17 +2,11 @@
 require_once "../config/db.php";
 
 $username = trim($_POST["username"] ?? '');
-$email = trim($_POST["email"] ?? '');
 $password = $_POST["password"] ?? '';
 $confirmPassword = $_POST["confirm_password"] ?? '';
 
-if ($username === '' || $email === '' || $password === '' || $confirmPassword === '') {
+if ($username === '' || $password === '' || $confirmPassword === '') {
     header("Location: ../../frontend/register.php?error=empty");
-    exit();
-}
-
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    header("Location: ../../frontend/register.php?error=email");
     exit();
 }
 
@@ -21,9 +15,9 @@ if ($password !== $confirmPassword) {
     exit();
 }
 
-// Check if username or email already exists
-$stmt = $pdo->prepare("SELECT user_id FROM users WHERE username = ? OR email = ?");
-$stmt->execute([$username, $email]);
+// Check if username already exists
+$stmt = $pdo->prepare("SELECT user_id FROM users WHERE username = ?");
+$stmt->execute([$username]);
 $existingUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($existingUser) {
@@ -34,8 +28,8 @@ if ($existingUser) {
 // Hash the password before storing it
 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-$stmt = $pdo->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
-$stmt->execute([$username, $email, $hashedPassword]);
+$stmt = $pdo->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+$stmt->execute([$username, $hashedPassword]);
 
 header("Location: ../../frontend/register.php?success=1");
 exit();

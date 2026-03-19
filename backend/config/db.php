@@ -1,13 +1,6 @@
 <?php
 
-// Load environment variables from .env file
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . "/../../");
-$dotenv->load();
-
-$host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-$dbname = $_ENV['DB_NAME'] ?? 'newscurator';
-$username = $_ENV['DB_USER'] ?? 'root';
-$password = $_ENV['DB_PASS'] ?? '';
+require_once __DIR__ . '/db_config.php';
 
 try {
     $pdo = new PDO(

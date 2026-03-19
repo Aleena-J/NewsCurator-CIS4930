@@ -14,9 +14,8 @@
         <div class="alert alert-danger">
             <?php
             if ($_GET['error'] === 'empty') echo "Please fill in all fields.";
-            elseif ($_GET['error'] === 'email') echo "Invalid email address.";
             elseif ($_GET['error'] === 'match') echo "Passwords do not match.";
-            elseif ($_GET['error'] === 'exists') echo "Username or email already exists.";
+            elseif ($_GET['error'] === 'exists') echo "Username already exists.";
             else echo "Registration failed.";
             ?>
         </div>
@@ -32,11 +31,6 @@
         <div class="mb-3">
             <label class="form-label">Username</label>
             <input type="text" name="username" class="form-control" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input type="email" name="email" class="form-control" required>
         </div>
 
         <div class="mb-3">
