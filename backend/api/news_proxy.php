@@ -17,7 +17,7 @@
             ."?token=" . $apiKey
             ."&q=" . urlencode($query)
             ."&sort=crawled&order=desc"
-            ."&highlight=false";
+            ."&highlight=true";
     }
 
     $response = file_get_contents($url);
