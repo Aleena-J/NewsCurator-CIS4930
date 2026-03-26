@@ -17,7 +17,6 @@ var currentQuery = "";
 var nextPageUrl = null;
 
 
-
 function buildQuery() {
     var kw = $("#search-keywords").val().trim();
     var country = $("#filter-country").val();
@@ -188,6 +187,14 @@ $("#search-form").on("submit", function (e) {
     var q = buildQuery();
     if (q === "") {
         $("#search-results-info").text("Enter keywords and/or pick at least one filter.");
+        $("#search-results-list").empty();
+        return;
+    }
+    if (q.length > 100) {
+        $("#search-results-info").text(
+            "The API allows at most 100 characters for the full query (keywords + filters). Yours is " +
+                q.length + " characters. Use shorter keywords and/or fewer filters."
+        );
         $("#search-results-list").empty();
         return;
     }
