@@ -96,6 +96,6 @@ if (!isset($_SESSION["user_id"])) {
         </div>
 
         <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-        <script src="search.js"></script>
+        <script src="search.js?v=<?php echo filemtime(__DIR__ . '/search.js'); ?>"></script>
     </body>
 </html>

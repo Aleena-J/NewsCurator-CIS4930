@@ -196,6 +196,8 @@ $("#search-form").on("submit", function (e) {
                 q.length + " characters. Use shorter keywords and/or fewer filters."
         );
         $("#search-results-list").empty();
+        nextPageUrl = null;
+        $("#search-load-more-btn").hide();
         return;
     }
     currentQuery = q;
