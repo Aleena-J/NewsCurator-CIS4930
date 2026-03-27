@@ -97,6 +97,13 @@ $("#search-btn").on("click", function() {
         return;
     }
 
+    if (query.length > 100) {
+        $("#results-info").text(
+            "Queries can be at most 100 characters. Yours is " + query.length + " characters. Use shorter keywords."
+        );
+        return;
+    }
+
     currentQuery = query;
     nextPageUrl = null;
 
