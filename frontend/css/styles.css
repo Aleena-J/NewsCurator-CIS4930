@@ -111,6 +111,103 @@ body {
     font-size: 0.9rem;
 }
 
+.article-back-link {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.article-back-link:hover {
+    color: var(--blue);
+    text-decoration: underline;
+}
+
+.article-page-title {
+    margin: 0;
+    font-size: 1.6rem;
+    line-height: 1.25;
+}
+
+.article-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem 1rem;
+}
+
+.article-title-row .article-page-title {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.article-page-site {
+    margin: 0.35rem 0 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.35;
+}
+
+.article-page-wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 1rem 1.5rem 2.5rem;
+}
+
+.article-detail-card {
+    background: #fff;
+    border: 1px solid var(--gray-border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin: 1.25rem 0 0;
+}
+
+.article-detail-card dl {
+    margin: 0;
+}
+
+.article-rate-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.25rem;
+}
+
+.article-meta-row {
+    display: grid;
+    grid-template-columns: minmax(100px, 140px) 1fr;
+    gap: 0.45rem 1.1rem;
+    align-items: baseline;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--gray-border);
+}
+
+.article-meta-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.article-meta-row:first-child {
+    padding-top: 0;
+}
+
+.article-meta-label {
+    margin: 0;
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.article-meta-value {
+    margin: 0;
+    word-break: break-word;
+}
+
+@media (max-width: 576px) {
+    .article-meta-row {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
+}
+
 .search-bar-wrap {
     display: flex;
     justify-content: center;
@@ -250,6 +347,17 @@ body {
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     pointer-events: none;
+}
+
+.article-title-row .card-rating-badge {
+    position: static;
+    top: auto;
+    right: auto;
+    flex-shrink: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
 }
 
 .news-card .card-body {
@@ -736,4 +844,21 @@ body {
     .account-page-wrap {
         grid-template-columns: 1fr;
     }
+}
+
+
+.article-rate-btn {
+    background: none;
+    border: 1px solid var(--gray-border);
+    border-radius: 4px;
+    font-size: 1.2rem;
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+    margin-top: 0.25rem;
+    align-self: flex-start;
+}
+ 
+.article-rate-btn:hover {
+    border-color: var(--blue);
+    color: var(--blue);
 }
