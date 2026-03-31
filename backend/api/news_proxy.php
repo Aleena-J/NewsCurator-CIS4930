@@ -1,7 +1,8 @@
 <?php
+    require_once __DIR__ . '/../config/env.php';
     header('Content-Type: application/json');
 
-    $apiKey = "API_KEY"; //Replace with API key or env variable
+    $apiKey = $_ENV['API_KEY'] ?? '';
 
     if (isset($_GET['next'])) {
         $next = $_GET['next'];
