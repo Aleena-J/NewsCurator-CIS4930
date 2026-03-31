@@ -708,6 +708,142 @@ body {
     }
 }
 
+.account-page-wrap {
+    max-width: 1100px;
+    margin: 1.25rem auto 2rem;
+    padding: 0 1.5rem;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 1.25rem;
+}
+
+.account-feedback-wrap {
+    max-width: 1100px;
+    margin: 1.25rem auto 0;
+    padding: 0 1.5rem;
+}
+
+.account-card {
+    background: #fff;
+    border: 1px solid var(--gray-border);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.account-card h2 {
+    margin: 0 0 0.9rem;
+    font-size: 1.2rem;
+}
+
+.profile-photo-shell {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+}
+
+.profile-photo {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--gray-border);
+}
+
+.profile-photo-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    font-weight: bold;
+}
+
+.profile-name {
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0 0 0.9rem;
+}
+
+.photo-form {
+    border-top: 1px solid var(--gray-border);
+    padding-top: 0.85rem;
+}
+
+.pref-header {
+    margin-bottom: 0.5rem;
+}
+
+.pref-section {
+    border-top: 1px solid var(--gray-border);
+    padding: 0.9rem 0 0.7rem;
+}
+
+.pref-section:first-of-type {
+    border-top: none;
+    padding-top: 0;
+}
+
+.pref-section-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.pref-section-top h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.pref-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.55rem 0 0.7rem;
+}
+
+.pref-chip {
+    background: var(--gray-light);
+    border: 1px solid var(--gray-border);
+    border-radius: 999px;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.8rem;
+}
+
+.pref-empty {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.pref-editor {
+    border: 1px solid var(--gray-border);
+    border-radius: 6px;
+    padding: 0.75rem;
+    background: #fafafa;
+}
+
+.pref-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.45rem;
+    font-size: 0.9rem;
+}
+
+.pref-actions {
+    display: flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+    .account-page-wrap {
+        grid-template-columns: 1fr;
+    }
 .article-rate-btn {
     background: none;
     border: 1px solid var(--gray-border);
