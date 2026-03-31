@@ -66,6 +66,23 @@ function articleDate(post) {
     return "";
 }
 
+function articlePageQuery(post) {
+    var p = new URLSearchParams();
+    p.set("url", post.url || "");
+    p.set("title", post.title || "");
+    p.set(
+        "publisher",
+        post.thread && post.thread.site_full ? post.thread.site_full : ""
+    );
+    p.set(
+        "country",
+        post.thread && post.thread.country ? post.thread.country : ""
+    );
+    p.set("date", articleDate(post));
+    p.set("language", post.language || "");
+    return "article.php?" + p.toString();
+}
+
 function formatArticleDate(isoStr) {
 
     var d = new Date(isoStr);
@@ -101,7 +118,10 @@ function makeCard(post) {
     card += '<div class="search-result-main">';
     card +=
         '<a class="search-result-title" href="' +
-        url + '" target="_blank">' + title + "</a>";
+        articlePageQuery(post) +
+        '">' +
+        title +
+        "</a>";
     if (source) {
         card +=
             '<div class="search-result-meta">' + source
