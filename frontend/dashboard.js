@@ -3,6 +3,17 @@ var currentQuery = "performance_score:5";
 var nextPageUrl = null;
 
 function loadNews(query, append) {
+    if (query.length > 100) {
+        $("#results-info").text(
+            "This query is too long for the API (" +
+            query.length +
+            " characters). Reduce selected filters in your profile."
+        );
+        $("#news-grid").empty();
+        $("#load-more-btn").hide();
+        return;
+    }
+
     // Append is for paginations, appends new articles once load more is pressed
     var url = PROXY + "?q=" + encodeURIComponent(query);
 
@@ -57,7 +68,7 @@ function loadNews(query, append) {
 function makeCard(post) {
     var title   = post.title || "No title";
     var url     = post.url   || "URL Unavailable";
-    var source  = (post.thread && post.thread.site_full) ? post.thread.site_full : "";
+    var source  = (post.thread && post.thread.site) ? post.thread.site : "";
     var image   = (post.thread && post.thread.main_image) ? post.thread.main_image : "";
 
     var imageHtml = "";
