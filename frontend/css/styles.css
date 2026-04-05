@@ -844,9 +844,6 @@ body {
     .account-page-wrap {
         grid-template-columns: 1fr;
     }
-}
-
-
 .article-rate-btn {
     background: none;
     border: 1px solid var(--gray-border);
