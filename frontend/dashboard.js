@@ -65,11 +65,38 @@ function loadNews(query, append) {
     });
 }
 
+function articlePageUrl(post) {
+    var p = new URLSearchParams();
+    p.set("url", post.url || "");
+    p.set("title", post.title || "");
+    p.set(
+        "publisher",
+        post.thread && post.thread.site_full ? post.thread.site_full : ""
+    );
+    p.set(
+        "country",
+        post.thread && post.thread.country ? post.thread.country : ""
+    );
+    p.set("date", post.published || (post.thread && post.thread.published) || post.crawled || "");
+    p.set("language", post.language || "");
+    return "article.php?" + p.toString();
+}
+ 
+function snippetHtml(post) {
+    if (post.highlightText) {
+        return post.highlightText;
+    }
+    var plain = post.text || post.summary || "";
+    return plain ? $("<div>").text(plain).html() : "";
+}
+
 function makeCard(post) {
     var title   = post.title || "No title";
     var url     = post.url   || "URL Unavailable";
     var source  = (post.thread && post.thread.site) ? post.thread.site : "";
     var image   = (post.thread && post.thread.main_image) ? post.thread.main_image : "";
+    var snippet = snippetHtml(post);
+    var articlePgeUrl  = articlePageUrl(post);
 
     var imageHtml = "";
     if (image != "") {
@@ -79,13 +106,16 @@ function makeCard(post) {
     }
 
     var card = "<div class='news-card'>";
-    card +=     imageHtml;
+    card +=     "<a href='" + articlePgeUrl + "'>" + imageHtml + "</a>";
     card +=     "<div class='card-rating-badge'>&#9733; 0/5</div>";
     card +=     "<div class='card-body'>";
     if (source != "") {
         card += "<span class='card-source'>" + source + "</span>";
     }
-    card +=     "<a class='card-title' href='" + url + "' target='_blank'>" + title + "</a>";
+    card +=     "<a class='card-title' href='" + articlePgeUrl + "'>" + title + "</a>";
+    if (snippet != "") {
+        card += "<p class='card-snippet'>" + snippet + "</p>";
+    }
     card +=     "<button class='card-rate-btn' data-title='" + title.replace(/'/g, "&#39;") + "'>Rate this article</button>";
     card +=     "<a class='card-link' href='" + url + "' target='_blank'>Read full article &rarr;</a>";
     card +=     "</div>";
