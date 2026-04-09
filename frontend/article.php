@@ -76,7 +76,14 @@ function line($label, $value)
                 </dl>
             </div>
             <div class="article-rate-actions">
-                <button type="button" class="article-rate-btn" data-title="<?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?>">Rate this article</button>
+               <button 
+					type="button" 
+					class="article-rate-btn" 
+					data-title="<?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?>"
+					data-id="<?php echo htmlspecialchars($url, ENT_QUOTES, 'UTF-8'); ?>"
+				>
+					Rate this article
+				</button>
             </div>
         </div>
 
@@ -92,10 +99,16 @@ function line($label, $value)
                     <span class="star" data-value="5">&#9733;</span>
                 </div>
                 <p class="star-label" id="star-label">Select a rating</p>
+				<textarea 
+					id="rating-comment" 
+					class="rating-comment-box" 
+					placeholder="Optional: Add a comment..."
+				></textarea>
                 <div class="rating-popup-actions">
                     <button id="rating-submit-btn" class="btn-rating-submit" disabled>Submit</button>
                     <button id="rating-cancel-btn" class="btn-rating-cancel">Cancel</button>
                 </div>
+				<p id="rating-message" class="rating-message"></p>
             </div>
         </div>
         <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
