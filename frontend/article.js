@@ -54,57 +54,40 @@ $("#rating-submit-btn").on("click", function () {
         return;
     }
 
-    $.ajax({
-        url: "submit_rating.php",
-        type: "POST",
-        data: {
-            article_id: currentArticleId,
-            rating: selectedRating,
-            comment: comment
-        },
+	$.ajax({
+		url: "submit_rating.php",
+		method: "POST",
+		dataType: "json",
+		data: {
+			article_id: currentArticleId,
+			rating: selectedRating,
+			comment_text: $("#rating-comment").val().trim()
+		},
+		success: function (response) {
+			if (!response.success) {
+				$("#rating-message").text(response.message);
+				return;
+			}
 
-        beforeSend: function () {
-            $("#rating-submit-btn")
-                .text("Submitting...")
-                .prop("disabled", true);
-        },
+			addCommentToPage(response.comment);
+			$("#article-total-score").html("&#9733; " + response.avg_rating + "/5");
+			$("#rating-message").text(response.message);
 
-        success: function (response) {
+			$("#rating-comment").val("");
+			selectedRating = 0;
+			$(".star").removeClass("selected hovered");
+			$("#star-label").text("Select a rating");
+			$("#rating-submit-btn").prop("disabled", true);
 
-            $("#rating-message")
-                .removeClass("error")
-                .addClass("success")
-                .text("Review saved!")
-                .fadeIn(200);
-
-            $("#rating-submit-btn").text("Submit");
-
-            setTimeout(function () {
-                $("#rating-popup").fadeOut(150);
-                $("#rating-message").hide();
-
-                $("#rating-comment").val("");
-                selectedRating = 0;
-                currentArticleId = "";
-                $(".star").removeClass("selected hovered");
-                $("#star-label").text("Select a rating");
-                $("#rating-submit-btn").prop("disabled", true);
-
-            }, 1200);
-        },
-
-        error: function () {
-            $("#rating-message")
-                .removeClass("success")
-                .addClass("error")
-                .text("Something went wrong.")
-                .fadeIn(200);
-
-            $("#rating-submit-btn")
-                .text("Submit")
-                .prop("disabled", false);
-        }
-    });
+			setTimeout(() => {
+				$("#rating-popup").fadeOut(150);
+				$("#rating-message").text("");
+			}, 800);
+		},
+		error: function () {
+			$("#rating-message").text("Something went wrong.");
+		}
+	});
 });
 
 
@@ -118,3 +101,41 @@ $("#rating-popup").on("click", function(e) {
       $("#rating-popup").fadeOut(150);
   }
 });
+
+function addCommentToPage(comment) {
+    $("#no-comments-msg").remove();
+
+    var safeUsername = escapeHtml(comment.username || "User");
+    var safeCreatedAt = escapeHtml(comment.created_at || "");
+    var safeCommentText = comment.comment_text
+        ? escapeHtml(comment.comment_text).replace(/\n/g, "<br>")
+        : "<em>No written comment provided.</em>";
+
+    var rating = parseInt(comment.rating) || 0;
+    var filledStars = "★".repeat(rating);
+    var emptyStars = "☆".repeat(5 - rating);
+
+    $("#comments-list .comment-card[data-user-id='" + comment.user_id + "']").remove();
+
+    var commentHtml = `
+        <div class="comment-card" data-user-id="${comment.user_id}">
+            <div class="comment-header">
+                <span class="comment-username">${safeUsername}</span>
+                <span class="comment-time">${safeCreatedAt}</span>
+            </div>
+
+            <div class="comment-rating">
+                ${filledStars}${emptyStars}
+                <span class="comment-rating-number">${rating}/5</span>
+            </div>
+
+            <p class="comment-text">${safeCommentText}</p>
+        </div>
+    `;
+
+    $("#comments-list").show().prepend(commentHtml);
+}
+
+function escapeHtml(text) {
+    return $("<div>").text(text).html();
+}

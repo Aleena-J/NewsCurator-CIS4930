@@ -11,6 +11,10 @@ try {
 			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
 		]
 	);
+	
+	 $pdo->exec("SET time_zone = '-04:00'");
+	 
+	 
 } catch (PDOException $e) {
     die("Connection failed: " . $e->getMessage());
 }
