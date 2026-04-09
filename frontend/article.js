@@ -1,7 +1,9 @@
 var selectedRating = 0;
+var currentArticleId = "";
 
 $(document).on("click", ".article-rate-btn", function() {
   var articleTitle = $(this).data("title");
+  currentArticleId = $(this).data("id");
   selectedRating = 0;
 
   $(".star").removeClass("selected hovered");
@@ -43,11 +45,66 @@ $(document).on("click", ".star", function() {
   $("#rating-submit-btn").prop("disabled", false);
 });
 
-//Submit button — placeholder
-$("#rating-submit-btn").on("click", function() {
-  // TODO: send selectedRating and article info to backend to save in DB
-  alert("You rated this article " + selectedRating + " out of 5 stars");
-  $("#rating-popup").fadeOut(150);
+
+$("#rating-submit-btn").on("click", function () {
+    var comment = $("#rating-comment").val().trim();
+
+    if (!selectedRating) {
+        alert("Please select a rating.");
+        return;
+    }
+
+    $.ajax({
+        url: "submit_rating.php",
+        type: "POST",
+        data: {
+            article_id: currentArticleId,
+            rating: selectedRating,
+            comment: comment
+        },
+
+        beforeSend: function () {
+            $("#rating-submit-btn")
+                .text("Submitting...")
+                .prop("disabled", true);
+        },
+
+        success: function (response) {
+
+            $("#rating-message")
+                .removeClass("error")
+                .addClass("success")
+                .text("Review saved!")
+                .fadeIn(200);
+
+            $("#rating-submit-btn").text("Submit");
+
+            setTimeout(function () {
+                $("#rating-popup").fadeOut(150);
+                $("#rating-message").hide();
+
+                $("#rating-comment").val("");
+                selectedRating = 0;
+                currentArticleId = "";
+                $(".star").removeClass("selected hovered");
+                $("#star-label").text("Select a rating");
+                $("#rating-submit-btn").prop("disabled", true);
+
+            }, 1200);
+        },
+
+        error: function () {
+            $("#rating-message")
+                .removeClass("success")
+                .addClass("error")
+                .text("Something went wrong.")
+                .fadeIn(200);
+
+            $("#rating-submit-btn")
+                .text("Submit")
+                .prop("disabled", false);
+        }
+    });
 });
 
 

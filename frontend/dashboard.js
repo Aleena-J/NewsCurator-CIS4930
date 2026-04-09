@@ -1,15 +1,71 @@
 var PROXY = "../backend/api/news_proxy.php";
-var currentQuery = "performance_score:5";
+var CATEGORY_FILTER = {
+    sports: "sport",
+    sport: "sport",
+    politics: "politics",
+    environment: "environment",
+    health: "health",
+    education: "education",
+    science: '"Science and Technology"',
+    technology: '"Science and Technology"',
+    business: '"Economy, Business and Finance"',
+    economy: '"Economy, Business and Finance"',
+    crime: '"Crime, Law and Justice"',
+    human_interest: '"Human Interest"',
+    war: '"War, Conflict and Unrest"',
+};
+var currentSearchParams = { q: "performance_score:5", country: "", language: "", category: "" };
 var nextPageUrl = null;
 
-function loadNews(query, append) {
+function dashboardParamsFromTopic(topicName) {
+    var topic = (topicName || "").toString().trim().toLowerCase();
+    if (topic === "") {
+        return { q: "performance_score:5", country: "", language: "", category: "" };
+    }
+
+    var cat = CATEGORY_FILTER[topic];
+    if (cat) {
+        return { q: "category:" + cat, country: "", language: "", category: "" };
+    }
+    return { q: 'text:"' + topicName + '"', country: "", language: "", category: "" };
+}
+
+function buildProxyUrl(params) {
+    var p = new URLSearchParams();
+    if (params.q) {
+        p.set("q", params.q);
+    }
+    if (params.country) {
+        p.set("country", params.country);
+    }
+    if (params.language) {
+        p.set("language", params.language);
+    }
+    if (params.category) {
+        p.set("category", params.category);
+    }
+    return PROXY + "?" + p.toString();
+}
+
+function loadNews(params, append) {
+    if (params.q && params.q.length > 100) {
+        $("#results-info").text(
+            "This query is too long for the API (" +
+            params.q.length +
+            " characters). Reduce selected filters in your profile."
+        );
+        $("#news-grid").empty();
+        $("#load-more-btn").hide();
+        return;
+    }
+
     // Append is for paginations, appends new articles once load more is pressed
-    var url = PROXY + "?q=" + encodeURIComponent(query);
+    var url = buildProxyUrl(params);
 
     if (append && nextPageUrl != null) {
         url = PROXY + "?next=" + encodeURIComponent(nextPageUrl);
     } else {
-        url = PROXY + "?q=" + encodeURIComponent(query);
+        url = buildProxyUrl(params);
     }
 
     if (!append) {
@@ -17,6 +73,7 @@ function loadNews(query, append) {
         $("#load-more-btn").hide();
     }
 
+	
     $.ajax({
         url: url,
         method: "GET",
@@ -54,11 +111,38 @@ function loadNews(query, append) {
     });
 }
 
+function articlePageUrl(post) {
+    var p = new URLSearchParams();
+    p.set("url", post.url || "");
+    p.set("title", post.title || "");
+    p.set(
+        "publisher",
+        post.thread && post.thread.site_full ? post.thread.site_full : ""
+    );
+    p.set(
+        "country",
+        post.thread && post.thread.country ? post.thread.country : ""
+    );
+    p.set("date", post.published || (post.thread && post.thread.published) || post.crawled || "");
+    p.set("language", post.language || "");
+    return "article.php?" + p.toString();
+}
+ 
+function snippetHtml(post) {
+    if (post.highlightText) {
+        return post.highlightText;
+    }
+    var plain = post.text || post.summary || "";
+    return plain ? $("<div>").text(plain).html() : "";
+}
+
 function makeCard(post) {
     var title   = post.title || "No title";
     var url     = post.url   || "URL Unavailable";
-    var source  = (post.thread && post.thread.site_full) ? post.thread.site_full : "";
+    var source  = (post.thread && post.thread.site) ? post.thread.site : "";
     var image   = (post.thread && post.thread.main_image) ? post.thread.main_image : "";
+    var snippet = snippetHtml(post);
+    var articlePgeUrl  = articlePageUrl(post);
 
     var imageHtml = "";
     if (image != "") {
@@ -68,14 +152,17 @@ function makeCard(post) {
     }
 
     var card = "<div class='news-card'>";
-    card +=     imageHtml;
+    card +=     "<a href='" + articlePgeUrl + "'>" + imageHtml + "</a>";
     card +=     "<div class='card-rating-badge'>&#9733; 0/5</div>";
     card +=     "<div class='card-body'>";
     if (source != "") {
         card += "<span class='card-source'>" + source + "</span>";
     }
-    card +=     "<a class='card-title' href='" + url + "' target='_blank'>" + title + "</a>";
-    card +=     "<button class='card-rate-btn' data-title='" + title.replace(/'/g, "&#39;") + "'>Rate this article</button>";
+    card +=     "<a class='card-title' href='" + articlePgeUrl + "'>" + title + "</a>";
+    if (snippet != "") {
+        card += "<p class='card-snippet'>" + snippet + "</p>";
+    }
+    card += "<button class='card-rate-btn' data-title='" + title.replace(/'/g, "&#39;") + "' data-id='" + url.replace(/'/g, "&#39;") + "'>Rate this article</button>";
     card +=     "<a class='card-link' href='" + url + "' target='_blank'>Read full article &rarr;</a>";
     card +=     "</div>";
     card += "</div>";
@@ -87,29 +174,35 @@ var today = new Date();
 $("#today-date").text(today.toDateString());
 
 $(document).ready(function() {
-    loadNews("performance_score:5", false);
+    loadNews(currentSearchParams, false);
 });
 
 
 $("#search-btn").on("click", function() {
-    var query = $("#search-input").val().trim();
-    if (query == "") {
+    var keywords = $("#search-input").val().trim();
+    if (keywords === "") {
         return;
     }
 
-    if (query.length > 100) {
+    var q = 'text:"' + keywords + '"';
+    if (q.length > 100) {
         $("#results-info").text(
-            "Queries can be at most 100 characters. Yours is " + query.length + " characters. Use shorter keywords."
+            "Max keyword length is 93 characters. Yours is " + keywords.length + "."
         );
         return;
     }
 
-    currentQuery = query;
+    currentSearchParams = {
+        q: q,
+        country: "",
+        language: "",
+        category: "",
+    };
     nextPageUrl = null;
 
     $(".topic-tab").removeClass("active");
 
-    loadNews(query, false);
+    loadNews(currentSearchParams, false);
 });
 
 $("#search-input").on("keypress", function(e) {
@@ -119,31 +212,34 @@ $("#search-input").on("keypress", function(e) {
 });
 
 $("#load-more-btn").on("click", function() {
-    loadNews(currentQuery, true);
+    loadNews(currentSearchParams, true);
 });
 
 $(".topic-tab").on("click", function() {
     $(".topic-tab").removeClass("active");
     $(this).addClass("active");
  
-    var query = $(this).data("query");
-    currentQuery = query;
+    var topic = $(this).data("topic");
+    currentSearchParams = dashboardParamsFromTopic(topic);
     nextPageUrl = null;
-    loadNews(query, false);
+    loadNews(currentSearchParams, false);
 });
 
 var selectedRating = 0;
+var currentArticleId = "";
  
 $(document).on("click", ".card-rate-btn", function() {
     var articleTitle = $(this).data("title");
+    currentArticleId = $(this).data("id");
     selectedRating = 0;
- 
+
     $(".star").removeClass("selected hovered");
     $("#star-label").text("Select a rating");
     $("#rating-submit-btn").prop("disabled", true);
- 
+    $("#rating-comment").val("");
+    $("#rating-message").hide().text("").removeClass("success error");
+
     $("#rating-popup-title").text(articleTitle);
- 
     $("#rating-popup").fadeIn(150);
 });
  
@@ -178,11 +274,87 @@ $(document).on("click", ".star", function() {
     $("#rating-submit-btn").prop("disabled", false);
 });
  
-//Submit button — placeholder
-$("#rating-submit-btn").on("click", function() {
-    // TODO: send selectedRating and article info to backend to save in DB
-    alert("You rated this article " + selectedRating + " out of 5 stars");
-    $("#rating-popup").fadeOut(150);
+$("#rating-submit-btn").on("click", function () {
+    var comment = $("#rating-comment").val().trim();
+
+    if (!selectedRating) {
+        alert("Please select a rating.");
+        return;
+    }
+
+	if (!currentArticleId) {
+    $("#rating-message")
+        .removeClass("success")
+        .addClass("error")
+        .text("Missing article ID.")
+        .fadeIn(200);
+    return;
+}
+    $.ajax({
+        url: "submit_rating.php",
+        type: "POST",
+        data: {
+            article_id: currentArticleId,
+            rating: selectedRating,
+            comment: comment
+        },
+
+        beforeSend: function () {
+            $("#rating-submit-btn")
+                .text("Submitting...")
+                .prop("disabled", true);
+        },
+
+       success: function (response) {
+		response = String(response).trim();
+
+		if (response !== "Saved!") {
+			$("#rating-message")
+				.removeClass("success")
+				.addClass("error")
+				.text(response)
+				.fadeIn(200);
+
+			$("#rating-submit-btn")
+				.text("Submit")
+				.prop("disabled", false);
+
+			return;
+		}
+
+		$("#rating-message")
+			.removeClass("error")
+			.addClass("success")
+			.text("Review saved!")
+			.fadeIn(200);
+
+		$("#rating-submit-btn").text("Submit");
+
+		setTimeout(function () {
+			$("#rating-popup").fadeOut(150);
+			$("#rating-message").hide();
+
+			$("#rating-comment").val("");
+			selectedRating = 0;
+			currentArticleId = "";
+			$(".star").removeClass("selected hovered");
+			$("#star-label").text("Select a rating");
+			$("#rating-submit-btn").prop("disabled", true);
+		}, 1200);
+	},
+
+        error: function () {
+            $("#rating-message")
+                .removeClass("success")
+                .addClass("error")
+                .text("Something went wrong.")
+                .fadeIn(200);
+
+            $("#rating-submit-btn")
+                .text("Submit")
+                .prop("disabled", false);
+        }
+    });
 });
  
 

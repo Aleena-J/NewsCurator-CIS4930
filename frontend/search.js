@@ -13,35 +13,23 @@ var CATEGORY_FILTER = {
     war: '"War, Conflict and Unrest"',
 };
 
-var currentQuery = "";
+var currentSearchParams = null;
 var nextPageUrl = null;
 
 
-function buildQuery() {
+function buildSearchParams() {
     var kw = $("#search-keywords").val().trim();
     var country = $("#filter-country").val();
     var lang = $("#filter-lang").val();
     var catKey = $("#filter-category").val();
 
-    var query = [];
-    if (kw !== "") {
-        // search in title and text
-        query.push('(title:"' + kw + '" OR text:"' + kw + '")');
-    }
-    if (country) {
-        query.push("thread.country:" + country);
-    }
-    if (lang) {
-        query.push("language:" + lang);
-    }
-    if (catKey && CATEGORY_FILTER[catKey]) {
-        query.push("category:"  + CATEGORY_FILTER[catKey]);
-    }
-
-    if (query.length === 0) {
-        return "";
-    }
-    return query.join(" AND ");
+    return {
+        q: kw !== "" ? 'text:"' + kw + '"' : "",
+        keywords: kw,
+        country: country || "",
+        language: lang || "",
+        category: catKey && CATEGORY_FILTER[catKey] ? CATEGORY_FILTER[catKey] : "",
+    };
 }
 
 // gets html for the text snippet
@@ -145,12 +133,29 @@ function makeCard(post) {
     return card;
 }
 
-function loadNews(query, append) {
+function buildProxyUrl(params) {
+    var p = new URLSearchParams();
+    if (params.q) {
+        p.set("q", params.q);
+    }
+    if (params.country) {
+        p.set("country", params.country);
+    }
+    if (params.language) {
+        p.set("language", params.language);
+    }
+    if (params.category) {
+        p.set("category", params.category);
+    }
+    return PROXY + "?" + p.toString();
+}
+
+function loadNews(params, append) {
     var url;
     if (append && nextPageUrl != null) {
         url = PROXY + "?next=" + encodeURIComponent(nextPageUrl);
     } else {
-        url = PROXY + "?q=" + encodeURIComponent(query);
+        url = buildProxyUrl(params);
     }
 
     if (!append) {
@@ -204,27 +209,31 @@ function loadNews(query, append) {
 
 $("#search-form").on("submit", function (e) {
     e.preventDefault();
-    var q = buildQuery();
-    if (q === "") {
+    var params = buildSearchParams();
+    var hasAnyFilter =
+        params.q !== "" ||
+        params.country !== "" ||
+        params.language !== "" ||
+        params.category !== "";
+    if (!hasAnyFilter) {
         $("#search-results-info").text("Enter keywords and/or pick at least one filter.");
         $("#search-results-list").empty();
         return;
     }
-    if (q.length > 100) {
+    if (params.q.length > 100) {
         $("#search-results-info").text(
-            "The API allows at most 100 characters for the full query (keywords + filters). Yours is " +
-                q.length + " characters. Use shorter keywords and/or fewer filters."
+            "Max keyword length is 93 characters. Yours is " + params.keywords.length + "."
         );
         $("#search-results-list").empty();
         nextPageUrl = null;
         $("#search-load-more-btn").hide();
         return;
     }
-    currentQuery = q;
+    currentSearchParams = params;
     nextPageUrl = null;
-    loadNews(currentQuery, false);
+    loadNews(currentSearchParams, false);
 });
 
 $("#search-load-more-btn").on("click", function () {
-    loadNews(currentQuery, true);
+    loadNews(currentSearchParams, true);
 });

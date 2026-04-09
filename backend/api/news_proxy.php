@@ -12,13 +12,31 @@
             $url = "https://api.webz.io" . $next;
         }
     } else {
-        $query = isset($_GET['q']) ? $_GET['q'] : "performance_score:5";
+        $params = [
+            'token' => $apiKey,
+            'sort' => 'crawled',
+            'order' => 'desc',
+            'highlight' => 'true',
+        ];
 
-        $url = "https://api.webz.io/newsApiLite"
-            ."?token=" . $apiKey
-            ."&q=" . urlencode($query)
-            ."&sort=crawled&order=desc"
-            ."&highlight=true";
+        if (!empty($_GET['q'])) {
+            $params['q'] = $_GET['q'];
+        }
+        if (!empty($_GET['country'])) {
+            $params['country'] = $_GET['country'];
+        }
+        if (!empty($_GET['language'])) {
+            $params['language'] = $_GET['language'];
+        }
+        if (!empty($_GET['category'])) {
+            $params['category'] = $_GET['category'];
+        }
+
+        if (empty($params['q']) && empty($params['country']) && empty($params['language']) && empty($params['category'])) {
+            $params['q'] = "performance_score:5";
+        }
+
+        $url = "https://api.webz.io/newsApiLite?" . http_build_query($params);
     }
 
     $response = file_get_contents($url);
