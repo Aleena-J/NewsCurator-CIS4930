@@ -1,12 +1,57 @@
 var PROXY = "../backend/api/news_proxy.php";
-var currentQuery = "performance_score:5";
+var CATEGORY_FILTER = {
+    sports: "sport",
+    sport: "sport",
+    politics: "politics",
+    environment: "environment",
+    health: "health",
+    education: "education",
+    science: '"Science and Technology"',
+    technology: '"Science and Technology"',
+    business: '"Economy, Business and Finance"',
+    economy: '"Economy, Business and Finance"',
+    crime: '"Crime, Law and Justice"',
+    human_interest: '"Human Interest"',
+    war: '"War, Conflict and Unrest"',
+};
+var currentSearchParams = { q: "performance_score:5", country: "", language: "", category: "" };
 var nextPageUrl = null;
 
-function loadNews(query, append) {
-    if (query.length > 100) {
+function dashboardParamsFromTopic(topicName) {
+    var topic = (topicName || "").toString().trim().toLowerCase();
+    if (topic === "") {
+        return { q: "performance_score:5", country: "", language: "", category: "" };
+    }
+
+    var cat = CATEGORY_FILTER[topic];
+    if (cat) {
+        return { q: "category:" + cat, country: "", language: "", category: "" };
+    }
+    return { q: 'text:"' + topicName + '"', country: "", language: "", category: "" };
+}
+
+function buildProxyUrl(params) {
+    var p = new URLSearchParams();
+    if (params.q) {
+        p.set("q", params.q);
+    }
+    if (params.country) {
+        p.set("country", params.country);
+    }
+    if (params.language) {
+        p.set("language", params.language);
+    }
+    if (params.category) {
+        p.set("category", params.category);
+    }
+    return PROXY + "?" + p.toString();
+}
+
+function loadNews(params, append) {
+    if (params.q && params.q.length > 100) {
         $("#results-info").text(
             "This query is too long for the API (" +
-            query.length +
+            params.q.length +
             " characters). Reduce selected filters in your profile."
         );
         $("#news-grid").empty();
@@ -15,12 +60,12 @@ function loadNews(query, append) {
     }
 
     // Append is for paginations, appends new articles once load more is pressed
-    var url = PROXY + "?q=" + encodeURIComponent(query);
+    var url = buildProxyUrl(params);
 
     if (append && nextPageUrl != null) {
         url = PROXY + "?next=" + encodeURIComponent(nextPageUrl);
     } else {
-        url = PROXY + "?q=" + encodeURIComponent(query);
+        url = buildProxyUrl(params);
     }
 
     if (!append) {
@@ -129,29 +174,35 @@ var today = new Date();
 $("#today-date").text(today.toDateString());
 
 $(document).ready(function() {
-    loadNews("performance_score:5", false);
+    loadNews(currentSearchParams, false);
 });
 
 
 $("#search-btn").on("click", function() {
-    var query = $("#search-input").val().trim();
-    if (query == "") {
+    var keywords = $("#search-input").val().trim();
+    if (keywords === "") {
         return;
     }
 
-    if (query.length > 100) {
+    var q = 'text:"' + keywords + '"';
+    if (q.length > 100) {
         $("#results-info").text(
-            "Queries can be at most 100 characters. Yours is " + query.length + " characters. Use shorter keywords."
+            "Max keyword length is 93 characters. Yours is " + keywords.length + "."
         );
         return;
     }
 
-    currentQuery = query;
+    currentSearchParams = {
+        q: q,
+        country: "",
+        language: "",
+        category: "",
+    };
     nextPageUrl = null;
 
     $(".topic-tab").removeClass("active");
 
-    loadNews(query, false);
+    loadNews(currentSearchParams, false);
 });
 
 $("#search-input").on("keypress", function(e) {
@@ -161,17 +212,17 @@ $("#search-input").on("keypress", function(e) {
 });
 
 $("#load-more-btn").on("click", function() {
-    loadNews(currentQuery, true);
+    loadNews(currentSearchParams, true);
 });
 
 $(".topic-tab").on("click", function() {
     $(".topic-tab").removeClass("active");
     $(this).addClass("active");
  
-    var query = $(this).data("query");
-    currentQuery = query;
+    var topic = $(this).data("topic");
+    currentSearchParams = dashboardParamsFromTopic(topic);
     nextPageUrl = null;
-    loadNews(query, false);
+    loadNews(currentSearchParams, false);
 });
 
 var selectedRating = 0;
