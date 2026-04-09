@@ -267,30 +267,36 @@ $topicsToDisplay = !empty($userTopics) ? $userTopics : $defaultTopics;
     </div>
 
     <div id="rating-popup" class="rating-popup-overlay" style="display:none;">
-        <div class="rating-popup-box">
-            <h3>Rate this article</h3>
-            <p id="rating-popup-title" class="rating-article-title"></p>
-            <div class="star-row">
-                <span class="star" data-value="1">&#9733;</span>
-                <span class="star" data-value="2">&#9733;</span>
-                <span class="star" data-value="3">&#9733;</span>
-                <span class="star" data-value="4">&#9733;</span>
-                <span class="star" data-value="5">&#9733;</span>
-            </div>
-            <p class="star-label" id="star-label">Select a rating</p>
-            <div class="rating-popup-actions">
-                <button id="rating-submit-btn" class="btn-rating-submit" disabled>Submit</button>
-                <button id="rating-cancel-btn" class="btn-rating-cancel">Cancel</button>
+            <div class="rating-popup-box">
+                <h3>Rate this article</h3>
+                <p id="rating-popup-title" class="rating-article-title"></p>
+                <div class="star-row">
+                    <span class="star" data-value="1">&#9733;</span>
+                    <span class="star" data-value="2">&#9733;</span>
+                    <span class="star" data-value="3">&#9733;</span>
+                    <span class="star" data-value="4">&#9733;</span>
+                    <span class="star" data-value="5">&#9733;</span>
+                </div>
+                <p class="star-label" id="star-label">Select a rating</p>
+				<textarea 
+					id="rating-comment" 
+					class="rating-comment-box" 
+					placeholder="Optional: Add a comment..."
+				></textarea>
+                <div class="rating-popup-actions">
+                    <button id="rating-submit-btn" class="btn-rating-submit" disabled>Submit</button>
+                    <button id="rating-cancel-btn" class="btn-rating-cancel">Cancel</button>
+                </div>
+				<p id="rating-message" class="rating-message"></p>
             </div>
         </div>
-    </div>
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script>
         var userCountries = <?php echo json_encode($userCountries); ?>;
         var userLanguages = <?php echo json_encode($userLanguages); ?>;
     </script>
-    <script src="dashboard.js"></script>
+   <script src="dashboard.js?v=<?php echo filemtime(__DIR__ . '/dashboard.js'); ?>"></script>
     <script>
         console.log("Popular query:", <?php echo json_encode(buildDashboardTabQuery(null, $userCountries, $userLanguages, $userSources, true)); ?>);
         <?php foreach ($topicsToDisplay as $topicName): ?>

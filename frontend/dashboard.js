@@ -28,6 +28,7 @@ function loadNews(query, append) {
         $("#load-more-btn").hide();
     }
 
+	
     $.ajax({
         url: url,
         method: "GET",
@@ -116,7 +117,7 @@ function makeCard(post) {
     if (snippet != "") {
         card += "<p class='card-snippet'>" + snippet + "</p>";
     }
-    card +=     "<button class='card-rate-btn' data-title='" + title.replace(/'/g, "&#39;") + "'>Rate this article</button>";
+    card += "<button class='card-rate-btn' data-title='" + title.replace(/'/g, "&#39;") + "' data-id='" + url.replace(/'/g, "&#39;") + "'>Rate this article</button>";
     card +=     "<a class='card-link' href='" + url + "' target='_blank'>Read full article &rarr;</a>";
     card +=     "</div>";
     card += "</div>";
@@ -174,17 +175,20 @@ $(".topic-tab").on("click", function() {
 });
 
 var selectedRating = 0;
+var currentArticleId = "";
  
 $(document).on("click", ".card-rate-btn", function() {
     var articleTitle = $(this).data("title");
+    currentArticleId = $(this).data("id");
     selectedRating = 0;
- 
+
     $(".star").removeClass("selected hovered");
     $("#star-label").text("Select a rating");
     $("#rating-submit-btn").prop("disabled", true);
- 
+    $("#rating-comment").val("");
+    $("#rating-message").hide().text("").removeClass("success error");
+
     $("#rating-popup-title").text(articleTitle);
- 
     $("#rating-popup").fadeIn(150);
 });
  
@@ -219,11 +223,87 @@ $(document).on("click", ".star", function() {
     $("#rating-submit-btn").prop("disabled", false);
 });
  
-//Submit button — placeholder
-$("#rating-submit-btn").on("click", function() {
-    // TODO: send selectedRating and article info to backend to save in DB
-    alert("You rated this article " + selectedRating + " out of 5 stars");
-    $("#rating-popup").fadeOut(150);
+$("#rating-submit-btn").on("click", function () {
+    var comment = $("#rating-comment").val().trim();
+
+    if (!selectedRating) {
+        alert("Please select a rating.");
+        return;
+    }
+
+	if (!currentArticleId) {
+    $("#rating-message")
+        .removeClass("success")
+        .addClass("error")
+        .text("Missing article ID.")
+        .fadeIn(200);
+    return;
+}
+    $.ajax({
+        url: "submit_rating.php",
+        type: "POST",
+        data: {
+            article_id: currentArticleId,
+            rating: selectedRating,
+            comment: comment
+        },
+
+        beforeSend: function () {
+            $("#rating-submit-btn")
+                .text("Submitting...")
+                .prop("disabled", true);
+        },
+
+       success: function (response) {
+		response = String(response).trim();
+
+		if (response !== "Saved!") {
+			$("#rating-message")
+				.removeClass("success")
+				.addClass("error")
+				.text(response)
+				.fadeIn(200);
+
+			$("#rating-submit-btn")
+				.text("Submit")
+				.prop("disabled", false);
+
+			return;
+		}
+
+		$("#rating-message")
+			.removeClass("error")
+			.addClass("success")
+			.text("Review saved!")
+			.fadeIn(200);
+
+		$("#rating-submit-btn").text("Submit");
+
+		setTimeout(function () {
+			$("#rating-popup").fadeOut(150);
+			$("#rating-message").hide();
+
+			$("#rating-comment").val("");
+			selectedRating = 0;
+			currentArticleId = "";
+			$(".star").removeClass("selected hovered");
+			$("#star-label").text("Select a rating");
+			$("#rating-submit-btn").prop("disabled", true);
+		}, 1200);
+	},
+
+        error: function () {
+            $("#rating-message")
+                .removeClass("success")
+                .addClass("error")
+                .text("Something went wrong.")
+                .fadeIn(200);
+
+            $("#rating-submit-btn")
+                .text("Submit")
+                .prop("disabled", false);
+        }
+    });
 });
  
 
