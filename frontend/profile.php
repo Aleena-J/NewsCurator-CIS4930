@@ -82,14 +82,141 @@ function getCurrentAccountData(PDO $pdo, int $userId): array
         $prefRow = null;
     }
 
+    $topicItems = [];
+    try {
+        $topicStmt = $pdo->prepare("SELECT t.name FROM user_pref_topic upt JOIN topic t ON upt.topic_id = t.topic_id WHERE upt.user_id = ? ORDER BY t.name");
+        $topicStmt->execute([$userId]);
+        $topicItems = $topicStmt->fetchAll(PDO::FETCH_COLUMN, 0);
+    } catch (Throwable $e) {
+        // fall back to the pre-existing JSON-based field if the new table isn't available yet
+        $topicItems = decodePrefList($prefRow["topics"] ?? null);
+    }
+
+    $sourceItems = [];
+    try {
+        $sourceStmt = $pdo->prepare("SELECT s.name FROM user_pref_source ups JOIN source s ON ups.source_id = s.source_id WHERE ups.user_id = ? ORDER BY s.name");
+        $sourceStmt->execute([$userId]);
+        $sourceItems = $sourceStmt->fetchAll(PDO::FETCH_COLUMN, 0);
+    } catch (Throwable $e) {
+        // fall back to the pre-existing JSON-based field if the new table isn't available yet
+        $sourceItems = decodePrefList($prefRow["sources"] ?? null);
+    }
+
     return [
         "preferences" => [
             "countries" => decodePrefList($prefRow["countries"] ?? null),
             "languages" => decodePrefList($prefRow["languages"] ?? null),
-            "sources" => decodePrefList($prefRow["sources"] ?? null),
-            "topics" => decodePrefList($prefRow["topics"] ?? null),
+            "sources" => array_values(array_unique(array_map('trim', $sourceItems))),
+            "topics" => array_values(array_unique(array_map('trim', $topicItems))),
         ],
     ];
+}
+
+function ensureTopicsExist(PDO $pdo, array $topics): array
+{
+    $topics = array_values(array_unique(array_filter(array_map('trim', $topics))));
+    if (count($topics) === 0) {
+        return [];
+    }
+
+    // Insert all topics (will be ignored if they already exist)
+    $insertStmt = $pdo->prepare("INSERT IGNORE INTO topic (name) VALUES (?)");
+    foreach ($topics as $name) {
+        if ($name !== '') {
+            try {
+                $insertStmt->execute([$name]);
+            } catch (Throwable $e) {
+                // log or ignore insert errors, continue with others
+            }
+        }
+    }
+
+    // Select all matching topics to get their IDs
+    $placeholders = implode(',', array_fill(0, count($topics), '?'));
+    $selectStmt = $pdo->prepare("SELECT topic_id, name FROM topic WHERE name IN ($placeholders)");
+    $selectStmt->execute($topics);
+    $results = $selectStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $topicIds = [];
+    foreach ($results as $row) {
+        $topicIds[$row['name']] = (int) $row['topic_id'];
+    }
+
+    return $topicIds;
+}
+
+function setUserPrefTopics(PDO $pdo, int $userId, array $topics, string $prefType = 'selected'): void
+{
+    $topicIdsByName = ensureTopicsExist($pdo, $topics);
+    $topicIds = array_map(function($id) { return (int) $id; }, array_values($topicIdsByName));
+
+    // delete old links and insert new ones
+    $deleteStmt = $pdo->prepare("DELETE FROM user_pref_topic WHERE user_id = ?");
+    $deleteStmt->execute([$userId]);
+
+    if (count($topicIds) === 0) {
+        return;
+    }
+
+    $insertStmt = $pdo->prepare("INSERT INTO user_pref_topic (user_id, topic_id, pref_type) VALUES (?, ?, ?)");
+    foreach ($topicIds as $topicId) {
+        $insertStmt->execute([$userId, $topicId, $prefType]);
+    }
+}
+
+function ensureSourcesExist(PDO $pdo, array $sources): array
+{
+    $sources = array_values(array_unique(array_filter(array_map('trim', $sources))));
+    if (count($sources) === 0) {
+        return [];
+    }
+
+    $insertStmt = $pdo->prepare("INSERT IGNORE INTO source (name) VALUES (?)");
+    foreach ($sources as $name) {
+        if ($name !== '') {
+            try {
+                $insertStmt->execute([$name]);
+            } catch (Throwable $e) {
+                // ignore and continue
+            }
+        }
+    }
+
+    $placeholders = implode(',', array_fill(0, count($sources), '?'));
+    $selectStmt = $pdo->prepare("SELECT source_id, name FROM source WHERE name IN ($placeholders)");
+    $selectStmt->execute($sources);
+    $results = $selectStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $sourceIds = [];
+    foreach ($results as $row) {
+        $sourceIds[$row['name']] = (int) $row['source_id'];
+    }
+
+    return $sourceIds;
+}
+
+function setUserPrefSources(PDO $pdo, int $userId, array $sources, string $prefType = 'selected'): void
+{
+    $sourceIdsByName = ensureSourcesExist($pdo, $sources);
+    $sourceIds = array_map(function ($id) {
+        return (int) $id;
+    }, array_values($sourceIdsByName));
+
+    $deleteStmt = $pdo->prepare("DELETE FROM user_pref_source WHERE user_id = ?");
+    $deleteStmt->execute([$userId]);
+
+    if (count($sourceIds) === 0) {
+        return;
+    }
+
+    $insertStmt = $pdo->prepare("
+        INSERT INTO user_pref_source (user_id, source_id, pref_type)
+        VALUES (?, ?, ?)
+    ");
+
+    foreach ($sourceIds as $sourceId) {
+        $insertStmt->execute([$userId, $sourceId, $prefType]);
+    }
 }
 
 function getStoredPhotoPath(int $userId): string
@@ -175,11 +302,25 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 parsePostedList("sources"),
                 parseCustomList(trim($_POST["sources_custom"] ?? ""))
             )));
+
+            try {
+                setUserPrefSources($pdo, $userId, $preferences["sources"], 'selected');
+            } catch (Throwable $e) {
+                $feedback = "Could not save source preferences yet. " . $e->getMessage();
+                $feedbackType = "danger";
+            }
         } elseif ($section === "topics") {
             $preferences["topics"] = array_values(array_unique(array_merge(
                 parsePostedList("topics"),
                 parseCustomList(trim($_POST["topics_custom"] ?? ""))
             )));
+
+            try {
+                setUserPrefTopics($pdo, $userId, $preferences["topics"], 'selected');
+            } catch (Throwable $e) {
+                $feedback = "Could not save topic preferences yet. " . $e->getMessage();
+                $feedbackType = "danger";
+            }
         } else {
             $feedback = "Unknown preference section.";
             $feedbackType = "danger";
@@ -214,8 +355,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 $countriesOptions = ["US", "GB", "CA", "AU", "DE", "FR", "IN", "JP", "BR", "MX"];
 $languageOptions = ["English", "Spanish", "French", "German", "Italian", "Portuguese", "Arabic", "Russian", "Hindi"];
 $sourcesOptions = ["BBC", "CNN", "Reuters", "Associated Press", "Al Jazeera", "The Guardian", "NPR", "Bloomberg"];
-$topicsOptions = ["Politics", "Science", "Sports", "Technology", "Health", "Business", "Environment", "Education"];
-
+$topicsOptions = ["Politics", "Science", "Sports", "Technology", "Health", "Business", "Environment", "Education", "Economy", "Crime"];
 $profilePhotoPath = trim(getStoredPhotoPath($userId));
 $profilePhotoExists = $profilePhotoPath !== "" && file_exists(__DIR__ . "/" . $profilePhotoPath);
 $initial = strtoupper(substr($username, 0, 1));
