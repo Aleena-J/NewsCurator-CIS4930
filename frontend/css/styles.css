@@ -844,70 +844,71 @@ body {
     .account-page-wrap {
         grid-template-columns: 1fr;
     }
-.article-rate-btn {
-    background: none;
-    border: 1px solid var(--gray-border);
-    border-radius: 4px;
-    font-size: 1.2rem;
-    padding: 0.25rem 0.6rem;
-    cursor: pointer;
-    margin-top: 0.25rem;
-    align-self: flex-start;
-}
- 
-.article-rate-btn:hover {
-    border-color: var(--blue);
-    color: var(--blue);
-}
+    .article-rate-btn {
+        background: none;
+        border: 1px solid var(--gray-border);
+        border-radius: 4px;
+        font-size: 1.2rem;
+        padding: 0.25rem 0.6rem;
+        cursor: pointer;
+        margin-top: 0.25rem;
+        align-self: flex-start;
+    }
+    
+    .article-rate-btn:hover {
+        border-color: var(--blue);
+        color: var(--blue);
+    }
 
-.article-tags {
-    margin: 8px 0 10px 0;
-}
+    .article-tags {
+        margin: 8px 0 10px 0;
+    }
 
-.bias-tag {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: white;
-    text-transform: capitalize;
-}
+    .bias-tag {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: white;
+        text-transform: capitalize;
+    }
 
-.bias-tag.left {
-    background-color: #3b82f6;
-}
+    .bias-tag.left {
+        background-color: #3b82f6;
+    }
 
-.bias-tag.center {
-    background-color: #6b7280;
-}
+    .bias-tag.center {
+        background-color: #6b7280;
+    }
 
-.bias-tag.right {
-    background-color: #ef4444;
-}
+    .bias-tag.right {
+        background-color: #ef4444;
+    }
 
-.rating-comment-box {
-    width: 100%;
-    min-height: 80px;
-    margin-top: 10px;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    resize: none;
-    font-family: inherit;
-}
+    .rating-comment-box {
+        width: 100%;
+        min-height: 80px;
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        resize: none;
+        font-family: inherit;
+    }
 
-.rating-message {
-    margin-top: 10px;
-    font-size: 14px;
-    text-align: center;
-    display: none;
-}
+    .rating-message {
+        margin-top: 10px;
+        font-size: 14px;
+        text-align: center;
+        display: none;
+    }
 
-.rating-message.success {
-    color: green;
-}
+    .rating-message.success {
+        color: green;
+    }
 
-.rating-message.error {
-    color: red;
+    .rating-message.error {
+        color: red;
+    }
 }
