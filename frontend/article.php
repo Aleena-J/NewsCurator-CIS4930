@@ -14,6 +14,7 @@ $publisher = isset($_GET["publisher"]) ? (string) $_GET["publisher"] : "";
 $country = isset($_GET["country"]) ? (string) $_GET["country"] : "";
 $date = isset($_GET["date"]) ? (string) $_GET["date"] : "";
 $language = isset($_GET["language"]) ? (string) $_GET["language"] : "";
+$image = isset($_GET["image"]) ? (string) $_GET["image"] : "";
 
 
 
@@ -97,6 +98,16 @@ if ($url !== "") {
         </div>
 
         <div class="article-page-wrap">
+            <?php if ($image !== "") { ?>
+                <div>
+                    <img
+                        class="article-img"
+                        src="<?php echo htmlspecialchars($image, ENT_QUOTES, 'UTF-8'); ?>"
+                        alt=""
+                        onerror="this.style.display='none'"
+                    >
+                </div>
+            <?php } ?>
             <div class="article-detail-card">
                 <dl>
                     <?php
