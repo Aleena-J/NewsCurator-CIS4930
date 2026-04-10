@@ -20,7 +20,7 @@
         ];
 
         if (!empty($_GET['q'])) {
-            $params['q'] = $_GET['q'];
+            $params['q'] = rawurldecode($_GET['q']);
         }
         if (!empty($_GET['country'])) {
             $params['country'] = $_GET['country'];

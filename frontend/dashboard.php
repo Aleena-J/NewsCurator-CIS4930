@@ -39,61 +39,49 @@ function topicToCategoryFilter(string $topicName): string
         'environment' => 'environment',
         'health' => 'health',
         'education' => 'education',
-        'science' => '"Science and Technology"',
-        'technology' => '"Science and Technology"',
-        'business' => '"Economy, Business and Finance"',
-        'economy' => '"Economy, Business and Finance"',
-        'crime' => '"Crime, Law and Justice"',
+        'science' => 'Science and Technology',
+        'technology' => 'Science and Technology',
+        'business' => 'Economy, Business and Finance',
+        'economy' => 'Economy, Business and Finance',
+        'crime' => 'Crime, Law and Justice',
     ];
 
     $key = strtolower(trim($topicName));
-    return isset($map[$key]) ? 'category:' . $map[$key] : 'category:"' . addslashes($topicName) . '"';
+    return isset($map[$key]) ? $map[$key] : $topicName;
 }
 
+function buildDashboardTabParams(?string $topicName, array $countries, array $languages, bool $popular = false): array {
+    $q = 'domain_rank:<2000 performance_score:>=3';
 
-function buildCountryLanguageFilters(array $countries, array $languages): array
-{
-    $parts = [];
 
-    foreach ($countries as $country) {
-        $country = normalizeCountry((string)$country);
-        if ($country !== '') {
-            $parts[] = 'country:' . $country;
-        }
+    $language = [];
+    foreach ($languages as $lang) {
+        $l = normalizeLanguage((string)$lang);
+        if ($l !== '') { $language[] = $l; break; }
     }
 
-    foreach ($languages as $language) {
-        $language = normalizeLanguage((string)$language);
-        if ($language !== '') {
-            $parts[] = 'language:' . $language;
-        }
+    $country = [];
+    foreach ($countries as $c) {
+        $c = normalizeCountry((string)$c);
+        if ($c !== '') { $country[] = $c; break; }
     }
 
-    return $parts;
-}
-
-function buildDashboardTabQuery(?string $topicName, array $countries, array $languages, bool $popular = false): string
-{
-    $queryParts = [];
-
-    if ($popular) {
-        $queryParts[] = 'performance_score:>=3';
-        $queryParts[] = 'domain_rank:<2000';
-    }
-
-    $queryParts = array_merge($queryParts, buildCountryLanguageFilters($countries, $languages));
-
+    $category = '';
     if ($topicName !== null && trim($topicName) !== '') {
-        $queryParts[] = 'domain_rank:<2000';
-        $queryParts[] = topicToCategoryFilter($topicName);
+        $category = topicToCategoryFilter($topicName);
     }
 
-    return implode(' ', $queryParts);
+    return [
+        'q'                => $q,
+        'language'         => $language,
+        'country'          => $country,
+        'category'         => $category,
+    ];
 }
 
-$userTopics = [];
+$userTopics    = [];
 $defaultTopics = ['Politics', 'Science', 'Sports'];
-$userSources = [];
+$userSources   = [];
 $userCountries = [];
 $userLanguages = [];
 
@@ -190,7 +178,7 @@ $placeholderSources = ['CNN', 'Bloomberg'];
                 class="topic-tab active"
                 data-topic=""
                 data-is-popular="1"
-                data-query="<?php echo htmlspecialchars(buildDashboardTabQuery(null, $userCountries, $userLanguages, true)); ?>">
+                data-params="<?php echo htmlspecialchars(json_encode(buildDashboardTabParams(null, $userCountries, $userLanguages, true))); ?>">
                 Popular
             </li>
 
@@ -199,7 +187,7 @@ $placeholderSources = ['CNN', 'Bloomberg'];
                     class="topic-tab"
                     data-topic="<?php echo htmlspecialchars($topicName); ?>"
                     data-is-popular="0"
-                    data-query="<?php echo htmlspecialchars(buildDashboardTabQuery($topicName, $userCountries, $userLanguages)); ?>">
+                    data-params="<?php echo htmlspecialchars(json_encode(buildDashboardTabParams($topicName, $userCountries, $userLanguages))); ?>">
                     <?php echo htmlspecialchars($topicName); ?>
                 </li>
             <?php endforeach; ?>
@@ -265,13 +253,13 @@ $placeholderSources = ['CNN', 'Bloomberg'];
         //debug statements
         console.group("Dashboard pre-built queries (PHP)");
         console.log("Popular :", <?php echo json_encode(
-            buildDashboardTabQuery(null, $userCountries, $userLanguages, true)
+            buildDashboardTabParams(null, $userCountries, $userLanguages, true)
         ); ?>);
         <?php foreach ($topicsToDisplay as $topicName): ?>
         console.log(
             <?php echo json_encode($topicName); ?> + ":",
             <?php echo json_encode(
-                buildDashboardTabQuery($topicName, $userCountries, $userLanguages)
+                buildDashboardTabParams($topicName, $userCountries, $userLanguages)
             ); ?>
         );
         <?php endforeach; ?>
