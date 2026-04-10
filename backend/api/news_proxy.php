@@ -33,7 +33,7 @@
         }
 
         if (empty($params['q']) && empty($params['country']) && empty($params['language']) && empty($params['category'])) {
-            $params['q'] = "performance_score:5";
+            $params['q'] = "performance_score:>=3 domain_rank:<2000";
         }
 
         $url = "https://api.webz.io/newsApiLite?" . http_build_query($params);

@@ -14,20 +14,54 @@ var CATEGORY_FILTER = {
     human_interest: '"Human Interest"',
     war: '"War, Conflict and Unrest"',
 };
-var currentSearchParams = { q: "performance_score:5", country: "", language: "", category: "" };
+var currentSearchParams = { q: "performance_score:>=3 domain_rank:<2000", country: "", language: "", category: "" };
 var nextPageUrl = null;
 
-function dashboardParamsFromTopic(topicName) {
+var currentTopicCategory = "";
+var currentTopicBaseQuery = "performance_score:>=3 domain_rank:<2000";
+
+function dashboardParamsFromTopic(topicName, prebuiltQuery) {
+    if (prebuiltQuery && prebuiltQuery.trim() !== "") {
+        return {
+            q: prebuiltQuery,
+            country: "",
+            language: "",
+            category: ""
+        };
+    }
+
     var topic = (topicName || "").toString().trim().toLowerCase();
     if (topic === "") {
-        return { q: "performance_score:5", country: "", language: "", category: "" };
+        return {
+            q: "performance_score:>=3 domain_rank:<2000",
+            country: "",
+            language: "",
+            category: ""
+        };
     }
 
     var cat = CATEGORY_FILTER[topic];
     if (cat) {
-        return { q: "category:" + cat, country: "", language: "", category: "" };
+        return { q: "domain_rank:<2000 category:" + cat, country: "", language: "", category: "" };
     }
-    return { q: 'text:"' + topicName + '"', country: "", language: "", category: "" };
+    return { q: 'domain_rank:<2000 text:"' + topicName + '"', country: "", language: "", category: "" };
+}
+
+function buildLocalePrefix() {
+    var parts = [];
+    if (typeof userCountries !== "undefined") {
+        for (var i = 0; i < userCountries.length; i++) {
+            var c = (userCountries[i] || "").toString().trim().toLowerCase();
+            if (c !== "") { parts.push("country:" + c); }
+        }
+    }
+    if (typeof userLanguages !== "undefined") {
+        for (var j = 0; j < userLanguages.length; j++) {
+            var l = (userLanguages[j] || "").toString().trim().toLowerCase();
+            if (l !== "") { parts.push("language:" + l); }
+        }
+    }
+    return parts.join(" ");
 }
 
 function buildProxyUrl(params) {
@@ -67,6 +101,12 @@ function loadNews(params, append) {
     } else {
         url = buildProxyUrl(params);
     }
+
+    //debug statements
+    console.group("loadNews()");
+    console.log("params :", JSON.stringify(params));
+    console.log("url    :", url);
+    console.groupEnd();
 
     if (!append) {
         $("#news-grid").html("<p class='loading-msg'>Loading articles...</p>");
@@ -203,6 +243,17 @@ var today = new Date();
 $("#today-date").text(today.toDateString());
 
 $(document).ready(function() {
+    var popularQuery = $(".topic-tab.active").data("query");
+    if (popularQuery && popularQuery.trim() !== "") {
+        currentSearchParams.q = popularQuery;
+    } else {
+        // add country and language preference to popular search
+        var locale = buildLocalePrefix();
+        currentSearchParams.q = "performance_score:>=3 domain_rank:<2000"
+            + (locale !== "" ? " " + locale : "");
+    }
+    //debug
+    console.log("Dashboard init query:", currentSearchParams.q);
     loadNews(currentSearchParams, false);
 });
 
@@ -230,6 +281,8 @@ $("#search-btn").on("click", function() {
     nextPageUrl = null;
 
     $(".topic-tab").removeClass("active");
+    $("#source-tabs-wrap").hide();
+    $(".source-tab").removeClass("active");
 
     loadNews(currentSearchParams, false);
 });
@@ -249,8 +302,60 @@ $(".topic-tab").on("click", function() {
     $(this).addClass("active");
  
     var topic = $(this).data("topic");
-    currentSearchParams = dashboardParamsFromTopic(topic);
+    var prebuilt   = $(this).data("query");
+    var isPopular  = $(this).data("is-popular") == "1";
+    $(".source-tab").removeClass("active");
+    if (isPopular) {
+        $("#source-tabs-wrap").hide();
+        currentTopicCategory = "";
+    } else {
+        $("#source-tabs-wrap").show();
+        var topicKey = (topic || "").toString().trim().toLowerCase();
+        currentTopicCategory = CATEGORY_FILTER[topicKey] || "";
+    }
+    currentSearchParams = dashboardParamsFromTopic(topic, prebuilt);
+    currentTopicBaseQuery  = currentSearchParams.q;
     nextPageUrl = null;
+    //debug
+    console.log("Topic tab clicked:", topic || "Popular", "| query:", currentSearchParams.q);
+    loadNews(currentSearchParams, false);
+});
+
+$(".source-tab").on("click", function() {
+    $(".source-tab").removeClass("active");
+    $(this).addClass("active");
+
+    var sourceKey = $(this).data("source");
+
+    // HARD CODED DOMAINS - SWITCH TO USER PREF
+    var domainMap = {
+        "cnn":       "cnn.com",
+        "bloomberg": "bloomberg.com"
+    };
+
+    var domain = domainMap[sourceKey];
+    if (!domain) {
+        console.warn("No domain mapping for source key:", sourceKey);
+        return;
+    }
+
+    var cleanQ;
+    if (currentTopicCategory !== "") {
+        cleanQ = "category:" + currentTopicCategory + " site:" + domain;
+    } else {
+        cleanQ = "site:" + domain;
+    }
+
+    currentSearchParams = {
+        q: cleanQ,
+        country:  "",
+        language: "",
+        category: ""
+    };
+    nextPageUrl = null;
+
+    console.log("Source tab clicked:", sourceKey, "| query:", currentSearchParams.q);
+
     loadNews(currentSearchParams, false);
 });
 
