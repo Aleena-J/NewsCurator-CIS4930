@@ -57,13 +57,13 @@ function buildDashboardTabParams(?string $topicName, array $countries, array $la
     $language = [];
     foreach ($languages as $lang) {
         $l = normalizeLanguage((string)$lang);
-        if ($l !== '') { $language[] = $l; break; }
+        if ($l !== '') { $language[] = $l;}
     }
 
     $country = [];
     foreach ($countries as $c) {
         $c = normalizeCountry((string)$c);
-        if ($c !== '') { $country[] = $c; break; }
+        if ($c !== '') { $country[] = $c;}
     }
 
     $category = '';

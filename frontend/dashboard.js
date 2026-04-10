@@ -1,4 +1,4 @@
-var PROXY = "../backend/api/news_proxy.php";
+var PROXY = "../backend/api/news_proxy_dash.php";
 var CATEGORY_FILTER = {
     sports: "sport",
     sport: "sport",
@@ -37,7 +37,7 @@ function buildProxyUrl(params) {
             : params.language.split(',');
         for (var i = 0; i < langs.length; i++) {
             if ((langs[i] + '').trim() !== '') {
-                p.append('language', (langs[i] + '').trim());
+                p.append('language[]', (langs[i] + '').trim());
             }
         }
     }
@@ -48,7 +48,7 @@ function buildProxyUrl(params) {
             : params.country.split(',');
         for (var j = 0; j < countries.length; j++) {
             if ((countries[j] + '').trim() !== '') {
-                p.append('country', (countries[j] + '').trim());
+                p.append('country[]', (countries[j] + '').trim());
             }
         }
     }
