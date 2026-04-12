@@ -16,7 +16,7 @@ var CATEGORY_FILTER = {
 };
 
 var currentSearchParams = {
-    q: 'domain_rank:<10000 performance_score:>=3', language: '', country: '', category: ''};
+    q: 'domain_rank:<5000 performance_score:>=3', language: '', country: '', category: ''};
 var nextPageUrl = null;
 var currentTopicCategory = "";
 
@@ -66,7 +66,7 @@ function paramsFromTab($tab) {
         };
     }
     return {
-        q: 'domain_rank:<10000',
+        q: 'domain_rank:<5000',
         language: '', country: '', category: ''
     };
 }

@@ -51,7 +51,7 @@ function topicToCategoryFilter(string $topicName): string
 }
 
 function buildDashboardTabParams(?string $topicName, array $countries, array $languages, bool $popular = false): array {
-    $q = $popular ? 'domain_rank:<10000 performance_score:>=3' : 'domain_rank:<10000';
+    $q = $popular ? 'domain_rank:<5000 performance_score:>=3' : 'domain_rank:<5000';
 
 
     $language = [];
