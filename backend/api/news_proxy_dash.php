@@ -29,7 +29,7 @@
         }
 
         if (empty($params['q']) && empty($params['country']) && empty($params['language']) && empty($params['category'])) {
-            $params['q'] = "performance_score:>=3 domain_rank:<2000";
+            $params['q'] = "performance_score:>=3 domain_rank:<10000";
         }
 
         $query = http_build_query($params);
