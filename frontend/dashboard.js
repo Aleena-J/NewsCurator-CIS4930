@@ -146,6 +146,10 @@ function articlePageUrl(post) {
     );
     p.set("date", post.published || (post.thread && post.thread.published) || post.crawled || "");
     p.set("language", post.language || "");
+    p.set(
+        "image",
+        post.thread && post.thread.main_image ? post.thread.main_image : ""
+    );
     return "article.php?" + p.toString();
 }
  
