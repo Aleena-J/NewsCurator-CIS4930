@@ -17,6 +17,7 @@
             'sort' => 'crawled',
             'order' => 'desc',
             'highlight' => 'true',
+            'site_type' => 'news',
         ];
 
         if (!empty($_GET['q'])) {

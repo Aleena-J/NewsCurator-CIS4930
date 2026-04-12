@@ -66,7 +66,7 @@ function paramsFromTab($tab) {
         };
     }
     return {
-        q: 'performance_score:>=3 domain_rank:>2000',
+        q: 'domain_rank:<10000',
         language: '', country: '', category: ''
     };
 }
