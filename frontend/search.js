@@ -68,6 +68,11 @@ function articlePageQuery(post) {
     );
     p.set("date", articleDate(post));
     p.set("language", post.language || "");
+    p.set(
+        "image",
+        post.thread && post.thread.main_image ? post.thread.main_image : ""
+    );
+	p.set("description", post.text || post.description || "");
     return "article.php?" + p.toString();
 }
 
@@ -228,6 +233,9 @@ $("#search-form").on("submit", function (e) {
         nextPageUrl = null;
         $("#search-load-more-btn").hide();
         return;
+    }
+    if (!params.q || params.q.trim() === "") {
+        params.q = "domain_rank:<2000";
     }
     currentSearchParams = params;
     nextPageUrl = null;

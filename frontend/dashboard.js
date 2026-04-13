@@ -98,6 +98,8 @@ function loadNews(params, append) {
             } else {
                 $("#news-grid").html(html);
             }
+			
+			updateDashboardRatings();
 
             if (nextPageUrl != null) {
                 $("#load-more-btn").show();
@@ -125,6 +127,11 @@ function articlePageUrl(post) {
     );
     p.set("date", post.published || (post.thread && post.thread.published) || post.crawled || "");
     p.set("language", post.language || "");
+    p.set(
+        "image",
+        post.thread && post.thread.main_image ? post.thread.main_image : ""
+    );
+	p.set("description", post.text || post.description || "");
     return "article.php?" + p.toString();
 }
  
@@ -134,6 +141,33 @@ function snippetHtml(post) {
     }
     var plain = post.text || post.summary || "";
     return plain ? $("<div>").text(plain).html() : "";
+}
+
+function updateDashboardRatings() {
+    $(".card-rating-badge").each(function () {
+        let badge = $(this);
+        let url = badge.data("url");
+
+        if (!url) return;
+
+        $.ajax({
+            url: "get_rating.php",
+            method: "GET",
+            dataType: "json",
+            data: { article_id: url },
+            success: function (res) {
+                let avg = parseFloat(res.avg || 0);
+				let display;
+				if (avg === 5 || avg === 0) {
+					display = String(avg);
+				} else {
+					display = avg.toFixed(1);
+				}
+
+                badge.html("&#9733; " + display + "/5");
+            }
+        });
+    });
 }
 
 function makeCard(post) {
@@ -153,7 +187,7 @@ function makeCard(post) {
 
     var card = "<div class='news-card'>";
     card +=     "<a href='" + articlePgeUrl + "'>" + imageHtml + "</a>";
-    card +=     "<div class='card-rating-badge'>&#9733; 0/5</div>";
+    card += "<div class='card-rating-badge' data-url='" + url.replace(/'/g, "&#39;") + "'>&#9733; 0/5</div>";
     card +=     "<div class='card-body'>";
     if (source != "") {
         card += "<span class='card-source'>" + source + "</span>";
@@ -294,10 +328,11 @@ $("#rating-submit-btn").on("click", function () {
         url: "submit_rating.php",
         type: "POST",
         data: {
-            article_id: currentArticleId,
-            rating: selectedRating,
-            comment: comment
-        },
+			article_id: currentArticleId,
+			rating: selectedRating,
+			comment_text: comment
+		},
+		dataType: "json",
 
         beforeSend: function () {
             $("#rating-submit-btn")
@@ -305,14 +340,12 @@ $("#rating-submit-btn").on("click", function () {
                 .prop("disabled", true);
         },
 
-       success: function (response) {
-		response = String(response).trim();
-
-		if (response !== "Saved!") {
+      success: function (response) {
+		if (!response.success) {
 			$("#rating-message")
 				.removeClass("success")
 				.addClass("error")
-				.text(response)
+				.text(response.message)
 				.fadeIn(200);
 
 			$("#rating-submit-btn")
@@ -327,6 +360,12 @@ $("#rating-submit-btn").on("click", function () {
 			.addClass("success")
 			.text("Review saved!")
 			.fadeIn(200);
+
+		$(".card-rating-badge").each(function () {
+			if ($(this).data("url") === currentArticleId) {
+				$(this).html("&#9733; " + response.avg_rating + "/5");
+			}
+		});
 
 		$("#rating-submit-btn").text("Submit");
 
