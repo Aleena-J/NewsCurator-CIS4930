@@ -988,3 +988,10 @@ body {
     line-height: 1.5;
     color: #222;
 }
+.article-description {
+    font-size: 18px;
+    color: #333;
+    margin-top: 10px;
+    max-width: 800px;
+    line-height: 1.6;
+}

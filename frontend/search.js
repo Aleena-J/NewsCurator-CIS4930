@@ -72,6 +72,7 @@ function articlePageQuery(post) {
         "image",
         post.thread && post.thread.main_image ? post.thread.main_image : ""
     );
+	p.set("description", post.text || post.description || "");
     return "article.php?" + p.toString();
 }
 
