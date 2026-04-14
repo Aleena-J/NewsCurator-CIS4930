@@ -368,13 +368,8 @@ $(".source-tab").on("click", function() {
 
     var sourceKey = $(this).data("source");
 
-    // HARD CODED DOMAINS - SWITCH TO USER PREF
-    var domainMap = {
-        "cnn":       "cnn.com",
-        "apnews": "apnews.com"
-    };
-
-    var domain = domainMap[sourceKey];
+    // Use the domain map from PHP
+    var domain = sourceDomainMap[sourceKey];
     if (!domain) {
         console.warn("No domain mapping for source key:", sourceKey);
         return;
