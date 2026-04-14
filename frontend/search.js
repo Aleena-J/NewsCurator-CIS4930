@@ -27,7 +27,7 @@ function buildSearchParams() {
     var catKey = $("#filter-category").val();
 
     return {
-        q: kw !== "" ? 'text:"' + kw + '"' : "",
+        q: kw !== "" ? kw : "",
         keywords: kw,
         country: country || "",
         language: lang || "",
@@ -292,7 +292,7 @@ $("#search-form").on("submit", function (e) {
     }
     if (params.q.length > 100) {
         $("#search-results-info").text(
-            "Max keyword length is 93 characters. Yours is " + params.keywords.length + "."
+            "Max keyword length is 100 characters. Yours is " + params.keywords.length + "."
         );
         $("#search-results-list").empty();
         nextPageUrl = null;

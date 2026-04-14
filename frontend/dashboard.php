@@ -31,7 +31,7 @@ function normalizeLanguage(string $language): string
     return $map[$key] ?? $key;
 }
 
-function topicToCategoryFilter(string $topicName): string
+function topicToCategoryFilter(string $topicName): ?string
 {
     $map = [
         'sports' => 'sport',
@@ -47,7 +47,7 @@ function topicToCategoryFilter(string $topicName): string
     ];
 
     $key = strtolower(trim($topicName));
-    return isset($map[$key]) ? $map[$key] : $topicName;
+    return $map[$key] ?? null;
 }
 
 function buildDashboardTabParams(?string $topicName, array $countries, array $languages, bool $popular = false): array {
@@ -68,7 +68,12 @@ function buildDashboardTabParams(?string $topicName, array $countries, array $la
 
     $category = '';
     if ($topicName !== null && trim($topicName) !== '') {
-        $category = topicToCategoryFilter($topicName);
+        $mappedCategory = topicToCategoryFilter($topicName);
+        if ($mappedCategory !== null) {
+            $category = $mappedCategory;
+        } else {
+            $q .= ' ' . trim($topicName);
+        }
     }
 
     return [
