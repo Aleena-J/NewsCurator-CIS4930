@@ -380,8 +380,12 @@ $(".source-tab").on("click", function() {
         return;
     }
 
+    var baseQ = (currentSearchParams.q || "")
+    .replace(/\s*site:[^\s]+/gi, "")
+    .trim();
+
     currentSearchParams = {
-        q: 'site:' + domain,
+        q: (baseQ ? baseQ + " " : "") + "site:" + domain,
         language: '',
         country: '',
         category: currentTopicCategory
