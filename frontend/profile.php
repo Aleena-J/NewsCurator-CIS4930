@@ -265,70 +265,11 @@ function setUserPrefSources(PDO $pdo, int $userId, array $sources, string $prefT
     }
 }
 
-function getStoredPhotoPath(int $userId): string
-{
-    $pattern = __DIR__ . "/uploads/profile_photos/user_" . $userId . "_*";
-    $matches = glob($pattern);
-    if (!is_array($matches) || count($matches) === 0) {
-        return "";
-    }
-
-    usort($matches, function (string $a, string $b): int {
-        return filemtime($b) <=> filemtime($a);
-    });
-
-    $latestFile = basename($matches[0]);
-    return "uploads/profile_photos/" . $latestFile;
-}
-
 $topicsOptions = ["Politics", "Science", "Sports", "Technology", "Health", "Business", "Environment", "Education", "Economy", "Crime"];
 $accountData = getCurrentAccountData($pdo, $userId);
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $action = $_POST["action"] ?? "";
-
-    if ($action === "update_photo") {
-        if (!isset($_FILES["profile_photo"]) || !is_array($_FILES["profile_photo"])) {
-            $feedback = "No file was uploaded.";
-            $feedbackType = "danger";
-        } elseif (($_FILES["profile_photo"]["error"] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            $feedback = "Unable to upload photo. Please try again.";
-            $feedbackType = "danger";
-        } elseif (($_FILES["profile_photo"]["size"] ?? 0) > 2 * 1024 * 1024) {
-            $feedback = "Photo must be under 2MB.";
-            $feedbackType = "danger";
-        } else {
-            $tmpPath = $_FILES["profile_photo"]["tmp_name"];
-            $finfo = new finfo(FILEINFO_MIME_TYPE);
-            $mimeType = $finfo->file($tmpPath);
-            $allowedTypes = [
-                "image/jpeg" => "jpg",
-                "image/png" => "png",
-                "image/webp" => "webp",
-            ];
-
-            if (!isset($allowedTypes[$mimeType])) {
-                $feedback = "Please upload a JPG, PNG, or WEBP image.";
-                $feedbackType = "danger";
-            } else {
-                $uploadDir = __DIR__ . "/uploads/profile_photos";
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0775, true);
-                }
-
-                $filename = "user_" . $userId . "_" . bin2hex(random_bytes(8)) . "." . $allowedTypes[$mimeType];
-                $destinationPath = $uploadDir . "/" . $filename;
-
-                if (move_uploaded_file($tmpPath, $destinationPath)) {
-                    $feedback = "Profile photo updated.";
-                    $feedbackType = "success";
-                } else {
-                    $feedback = "Could not save the uploaded image.";
-                    $feedbackType = "danger";
-                }
-            }
-        }
-    }
 
     if ($action === "update_preferences") {
         $section = $_POST["section"] ?? "";
@@ -435,8 +376,6 @@ $customCountries = array_values(array_diff($accountData["preferences"]["countrie
 $customLanguages = array_values(array_diff($accountData["preferences"]["languages"], $languageOptions));
 $customSources = array_values(array_diff($accountData["preferences"]["sources"], $sourcesOptions));
 $customTopics = array_values(array_diff($accountData["preferences"]["topics"], $topicsOptions));
-$profilePhotoPath = trim(getStoredPhotoPath($userId));
-$profilePhotoExists = $profilePhotoPath !== "" && file_exists(__DIR__ . "/" . $profilePhotoPath);
 $initial = strtoupper(substr($username, 0, 1));
 ?>
 <!DOCTYPE html>
@@ -469,23 +408,11 @@ $initial = strtoupper(substr($username, 0, 1));
             <section class="account-left">
                 <div class="account-card">
                     <h2>Profile</h2>
-
                     <div class="profile-photo-shell">
-                        <?php if ($profilePhotoExists): ?>
-                            <img class="profile-photo" src="<?php echo htmlspecialchars($profilePhotoPath); ?>" alt="Profile photo">
-                        <?php else: ?>
-                            <div class="profile-photo-placeholder"><?php echo htmlspecialchars($initial); ?></div>
-                        <?php endif; ?>
+                        <div class="profile-photo-placeholder"><?php echo htmlspecialchars($initial); ?></div>
                     </div>
 
                     <p class="profile-name"><?php echo htmlspecialchars($username); ?></p>
-
-                    <form action="profile.php" method="POST" enctype="multipart/form-data" class="photo-form">
-                        <input type="hidden" name="action" value="update_photo">
-                        <label for="profile-photo-input" class="form-label mb-1">Edit photo</label>
-                        <input id="profile-photo-input" type="file" name="profile_photo" class="form-control form-control-sm mb-2" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
-                        <button type="submit" class="btn btn-primary btn-sm w-100">Save Photo</button>
-                    </form>
                 </div>
             </section>
 
