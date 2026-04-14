@@ -16,6 +16,9 @@ var CATEGORY_FILTER = {
 var currentSearchParams = null;
 var nextPageUrl = null;
 
+var searchLoadedCount = 0;
+var seenArticleUrls = {};
+var searchRequestInFlight = false;
 
 function buildSearchParams() {
     var kw = $("#search-keywords").val().trim();
@@ -24,7 +27,7 @@ function buildSearchParams() {
     var catKey = $("#filter-category").val();
 
     return {
-        q: kw !== "" ? 'text:"' + kw + '"' : "",
+        q: kw !== "" ? kw : "",
         keywords: kw,
         country: country || "",
         language: lang || "",
@@ -72,6 +75,7 @@ function articlePageQuery(post) {
         "image",
         post.thread && post.thread.main_image ? post.thread.main_image : ""
     );
+	p.set("description", post.text || post.description || "");
     return "article.php?" + p.toString();
 }
 
@@ -155,6 +159,13 @@ function buildProxyUrl(params) {
 }
 
 function loadNews(params, append) {
+    if (append && !nextPageUrl) {
+        return;
+    }
+    if (append && searchRequestInFlight) {
+        return;
+    }
+
     var url;
     if (append && nextPageUrl != null) {
         url = PROXY + "?next=" + encodeURIComponent(nextPageUrl);
@@ -163,47 +174,98 @@ function loadNews(params, append) {
     }
 
     if (!append) {
+        searchLoadedCount = 0;
+        seenArticleUrls = {};
         $("#search-results-list").html(
             "<li class='loading-msg'>Loading…</li>"
         );
         $("#search-load-more-btn").hide();
     }
 
+    if (append) {
+        searchRequestInFlight = true;
+        $("#search-load-more-btn").prop("disabled", true);
+    }
+
     $.ajax({
         url: url,
         method: "GET",
         dataType: "json",
+        complete: function () {
+            searchRequestInFlight = false;
+            $("#search-load-more-btn").prop("disabled", false);
+        },
         success: function (data) {
-            var posts = data.posts;
-            nextPageUrl = data.next;
+            var posts = data.posts || [];
+            nextPageUrl = data.next || null;
 
             $("#search-results-info").text(data.totalResults + " articles found");
 
             if (posts.length === 0) {
-                $("#search-results-list").html(
-                    "<li class='empty-msg'>No articles found. Try different keywords or filters.</li>"
-                );
+                if (!append) {
+                    $("#search-results-list").html(
+                        "<li class='empty-msg'>No articles found. Try different keywords or filters.</li>"
+                    );
+                }
+                nextPageUrl = null;
+                $("#search-load-more-btn").hide();
                 return;
             }
 
             var html = "";
+            var added = 0;
             for (var i = 0; i < posts.length; i++) {
-                html += makeCard(posts[i]);
+                var post = posts[i];
+                var key = post.url || "";
+                if (key && seenArticleUrls[key]) {
+                    continue;
+                }
+                if (key) {
+                    seenArticleUrls[key] = true;
+                }
+                html += makeCard(post);
+                added++;
             }
 
             if (append) {
                 $("#search-results-list").append(html);
+                searchLoadedCount += added;
             } else {
                 $("#search-results-list").html(html);
+                searchLoadedCount = added;
             }
 
-            if (nextPageUrl != null) {
+            var totalReported = Number(data.totalResults);
+            var allLoaded =
+                Number.isFinite(totalReported) &&
+                totalReported >= 0 &&
+                searchLoadedCount >= totalReported;
+            if (allLoaded) {
+                nextPageUrl = null;
+            }
+
+            var raw = data.moreResultsAvailable;
+            var moreCount =
+                raw != null && raw !== "" ? Number(raw) : NaN;
+            if (Number.isFinite(moreCount) && moreCount <= 0) {
+                nextPageUrl = null;
+            }
+
+            var hasMore =
+                !!nextPageUrl &&
+                !allLoaded &&
+                (Number.isFinite(moreCount) ? moreCount > 0 : !!nextPageUrl);
+
+            if (hasMore) {
                 $("#search-load-more-btn").show();
             } else {
                 $("#search-load-more-btn").hide();
             }
         },
         error: function () {
+            nextPageUrl = null;
+            searchLoadedCount = 0;
+            $("#search-load-more-btn").hide();
             $("#search-results-list").html(
                 "<li class='error-msg'>Could not load results. Check the API key and network.</li>"
             );
@@ -222,14 +284,19 @@ $("#search-form").on("submit", function (e) {
     if (!hasAnyFilter) {
         $("#search-results-info").text("Enter keywords and/or pick at least one filter.");
         $("#search-results-list").empty();
+        nextPageUrl = null;
+        searchLoadedCount = 0;
+        currentSearchParams = null;
+        $("#search-load-more-btn").hide();
         return;
     }
     if (params.q.length > 100) {
         $("#search-results-info").text(
-            "Max keyword length is 93 characters. Yours is " + params.keywords.length + "."
+            "Max keyword length is 100 characters. Yours is " + params.keywords.length + "."
         );
         $("#search-results-list").empty();
         nextPageUrl = null;
+        searchLoadedCount = 0;
         $("#search-load-more-btn").hide();
         return;
     }

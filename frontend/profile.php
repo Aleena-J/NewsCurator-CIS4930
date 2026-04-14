@@ -13,6 +13,31 @@ $username = $_SESSION["username"] ?? "User";
 $feedback = "";
 $feedbackType = "";
 
+// Add two lists of all possible countries to their ISO codes and languages for validation when processing form submissions.
+$countriesOptions = [
+    "AF", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR",
+    "AM", "AW", "AU", "AT", "AZ", "BS", "BH", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO",
+    "BQ", "BA", "BW", "BV", "BR", "IO", "BN", "BG", "BF", "BI", "CV", "KH", "CM", "CA", "KY", "CF",
+    "TD", "CL", "CN", "CX", "CC", "CO", "KM", "CG", "CD", "CK", "CR", "CI", "HR", "CU", "CW", "CY", "CZ", "DK", "DJ", "DM", "DO",
+    "EC", "EG", "SV", "GQ", "ER", "EE", "ET", "FK", "FO", "FJ", "FI", "FR", "GF", "PF", "TF", "GA", "GM", "GE", "DE", "GH",
+    "GI", "GR", "GL", "GD", "GP", "GU", "GT", "GG", "GN", "GW", "GY", "HT", "HM", "VA", "HN", "HK", "HU", "IS", "IN", "ID", "IR", "IQ",
+    "IE", "IM", "IL", "IT", "JM", "JP", "JE", "JO", "KZ", "KE", "KI", "KP", "KR", "KW", "KG", "LA", "LV", "LB", "LS", "LR", "LY",
+    "LI", "LT", "LU", "MO", "MK", "MG", "MW", "MY", "MV", "ML", "MT", "MH", "MQ", "MR", "MU", "YT", "MX", "FM", "MD", "MC", "MN", "ME",
+    "MS", "MA", "MZ", "MM", "NA", "NR", "NP", "NL", "NC", "NZ", "NI", "NE", "NG", "NU", "NF", "MP", "NO", "OM", "PK", "PW", "PS", "PA",
+    "PG", "PY", "PE", "PH", "PN", "PL", "PT", "PR", "QA", "RE", "RO", "RU", "RW", "BL", "SH", "KN", "LC", "MF", "PM", "VC", "WS", "SM",
+    "ST", "SA", "SN", "RS", "SC", "SL", "SG", "SX", "SK", "SI", "SB", "SO", "ZA", "GS", "SS", "ES", "LK", "SD", "SR", "SJ", "SE", "CH", "SY",
+    "TW", "TJ", "TZ", "TH", "TL", "TG", "TK", "TO", "TT", "TN", "TR", "TM", "TC", "TV", "UG", "UA", "AE", "GB", "US", "UM", "UY", "UZ",
+    "VU", "VE", "VN", "VG", "VI", "WF", "EH", "YE", "ZM", "ZW"
+];
+
+$languageOptions = ["English", "Mandarin", "Chinese", "Hindi", "Spanish", "French", "Arabic", "Bengali", "Portuguese", "Russian", 
+    "Urdu", "Indonesian", "German", "Japanese", "Nigerian", "Egyptian Arabic", "Marathi", "Telugu", "Turkish",
+    "Tamil", "Cantonese", "Vietnamese", "Tagalog", "Korean", "Italian", "Hausa", "Thai", "Gujarati", "Javanese", 
+    "Persian", "Farsi", "Polish", "Ukrainian", "Malayalam", "Kannada", "Odia", "Maithili",
+    "Burmese", "Sundanese", "Yoruba", "Amharic", "Romanian", "Pashto", "Serbo-Croatian", "Malay", "Zulu",
+    "Dutch", "Igbo", "Sinhalese"
+];
+
 function decodePrefList(?string $json): array
 {
     if (!$json) {
@@ -69,6 +94,28 @@ function parsePostedList(string $field): array
     }
 
     return array_values(array_unique($clean));
+}
+
+function splitTopicsByCustom(array $savedTopics, array $defaultTopics): array
+{
+    $normalizedDefaults = [];
+    foreach ($defaultTopics as $topic) {
+        $normalizedDefaults[strtolower(trim((string) $topic))] = true;
+    }
+
+    $customTopics = [];
+    foreach ($savedTopics as $topic) {
+        $value = trim((string) $topic);
+        if ($value === "") {
+            continue;
+        }
+
+        if (!isset($normalizedDefaults[strtolower($value)])) {
+            $customTopics[] = $value;
+        }
+    }
+
+    return array_values(array_unique($customTopics));
 }
 
 function getCurrentAccountData(PDO $pdo, int $userId): array
@@ -177,7 +224,6 @@ function ensureSourcesExist(PDO $pdo, array $sources): array
             try {
                 $insertStmt->execute([$name]);
             } catch (Throwable $e) {
-                // ignore and continue
             }
         }
     }
@@ -219,84 +265,50 @@ function setUserPrefSources(PDO $pdo, int $userId, array $sources, string $prefT
     }
 }
 
-function getStoredPhotoPath(int $userId): string
-{
-    $pattern = __DIR__ . "/uploads/profile_photos/user_" . $userId . "_*";
-    $matches = glob($pattern);
-    if (!is_array($matches) || count($matches) === 0) {
-        return "";
-    }
-
-    usort($matches, function (string $a, string $b): int {
-        return filemtime($b) <=> filemtime($a);
-    });
-
-    $latestFile = basename($matches[0]);
-    return "uploads/profile_photos/" . $latestFile;
-}
-
+$topicsOptions = ["Politics", "Science", "Sports", "Technology", "Health", "Business", "Environment", "Education", "Economy", "Crime"];
 $accountData = getCurrentAccountData($pdo, $userId);
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $action = $_POST["action"] ?? "";
-
-    if ($action === "update_photo") {
-        if (!isset($_FILES["profile_photo"]) || !is_array($_FILES["profile_photo"])) {
-            $feedback = "No file was uploaded.";
-            $feedbackType = "danger";
-        } elseif (($_FILES["profile_photo"]["error"] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            $feedback = "Unable to upload photo. Please try again.";
-            $feedbackType = "danger";
-        } elseif (($_FILES["profile_photo"]["size"] ?? 0) > 2 * 1024 * 1024) {
-            $feedback = "Photo must be under 2MB.";
-            $feedbackType = "danger";
-        } else {
-            $tmpPath = $_FILES["profile_photo"]["tmp_name"];
-            $finfo = new finfo(FILEINFO_MIME_TYPE);
-            $mimeType = $finfo->file($tmpPath);
-            $allowedTypes = [
-                "image/jpeg" => "jpg",
-                "image/png" => "png",
-                "image/webp" => "webp",
-            ];
-
-            if (!isset($allowedTypes[$mimeType])) {
-                $feedback = "Please upload a JPG, PNG, or WEBP image.";
-                $feedbackType = "danger";
-            } else {
-                $uploadDir = __DIR__ . "/uploads/profile_photos";
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0775, true);
-                }
-
-                $filename = "user_" . $userId . "_" . bin2hex(random_bytes(8)) . "." . $allowedTypes[$mimeType];
-                $destinationPath = $uploadDir . "/" . $filename;
-
-                if (move_uploaded_file($tmpPath, $destinationPath)) {
-                    $feedback = "Profile photo updated.";
-                    $feedbackType = "success";
-                } else {
-                    $feedback = "Could not save the uploaded image.";
-                    $feedbackType = "danger";
-                }
-            }
-        }
-    }
 
     if ($action === "update_preferences") {
         $section = $_POST["section"] ?? "";
         $preferences = $accountData["preferences"];
 
         if ($section === "countries") {
-            $preferences["countries"] = array_values(array_unique(array_merge(
-                parsePostedList("countries"),
-                parseCustomList(trim($_POST["countries_custom"] ?? ""))
-            )));
+            $customCountriesInput = parseCustomList(trim($_POST["countries_custom"] ?? ""));
+            $invalidCountries = [];
+            foreach ($customCountriesInput as $country) {
+                if (!in_array(strtoupper($country), $countriesOptions, true)) {
+                    $invalidCountries[] = $country;
+                }
+            }
+            if (!empty($invalidCountries)) {
+                $feedback = "Invalid country code(s): " . implode(", ", $invalidCountries) . ". Please use valid ISO country codes.";
+                $feedbackType = "danger";
+            } else {
+                $preferences["countries"] = array_values(array_unique(array_merge(
+                    parsePostedList("countries"),
+                    $customCountriesInput
+                )));
+            }
         } elseif ($section === "languages") {
-            $preferences["languages"] = array_values(array_unique(array_merge(
-                parsePostedList("languages"),
-                parseCustomList(trim($_POST["languages_custom"] ?? ""))
-            )));
+            $customLanguagesInput = parseCustomList(trim($_POST["languages_custom"] ?? ""));
+            $invalidLanguages = [];
+            foreach ($customLanguagesInput as $language) {
+                if (!in_array(ucfirst(strtolower($language)), $languageOptions, true)) {
+                    $invalidLanguages[] = $language;
+                }
+            }
+            if (!empty($invalidLanguages)) {
+                $feedback = "Invalid language(s): " . implode(", ", $invalidLanguages) . ". Language is not supported. Please use valid language names.";
+                $feedbackType = "danger";
+            } else {
+                $preferences["languages"] = array_values(array_unique(array_merge(
+                    parsePostedList("languages"),
+                    $customLanguagesInput
+                )));
+            }
         } elseif ($section === "sources") {
             $preferences["sources"] = array_values(array_unique(array_merge(
                 parsePostedList("sources"),
@@ -310,10 +322,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $feedbackType = "danger";
             }
         } elseif ($section === "topics") {
-            $preferences["topics"] = array_values(array_unique(array_merge(
+            $keptCustomTopics = parsePostedList("topics_custom_keep");
+            $updatedTopics = array_values(array_unique(array_merge(
                 parsePostedList("topics"),
+                $keptCustomTopics,
                 parseCustomList(trim($_POST["topics_custom"] ?? ""))
             )));
+            $preferences["topics"] = $updatedTopics;
 
             try {
                 setUserPrefTopics($pdo, $userId, $preferences["topics"], 'selected');
@@ -356,8 +371,11 @@ $countriesOptions = ["US", "GB", "CA", "AU", "DE", "FR", "IN", "JP", "BR", "MX"]
 $languageOptions = ["English", "Spanish", "French", "German", "Italian", "Portuguese", "Arabic", "Russian", "Hindi"];
 $sourcesOptions = ["BBC", "CNN", "Reuters", "Associated Press", "Al Jazeera", "The Guardian", "NPR", "Bloomberg"];
 $topicsOptions = ["Politics", "Science", "Sports", "Technology", "Health", "Business", "Environment", "Education", "Economy", "Crime"];
-$profilePhotoPath = trim(getStoredPhotoPath($userId));
-$profilePhotoExists = $profilePhotoPath !== "" && file_exists(__DIR__ . "/" . $profilePhotoPath);
+
+$customCountries = array_values(array_diff($accountData["preferences"]["countries"], $countriesOptions));
+$customLanguages = array_values(array_diff($accountData["preferences"]["languages"], $languageOptions));
+$customSources = array_values(array_diff($accountData["preferences"]["sources"], $sourcesOptions));
+$customTopics = array_values(array_diff($accountData["preferences"]["topics"], $topicsOptions));
 $initial = strtoupper(substr($username, 0, 1));
 ?>
 <!DOCTYPE html>
@@ -390,23 +408,11 @@ $initial = strtoupper(substr($username, 0, 1));
             <section class="account-left">
                 <div class="account-card">
                     <h2>Profile</h2>
-
                     <div class="profile-photo-shell">
-                        <?php if ($profilePhotoExists): ?>
-                            <img class="profile-photo" src="<?php echo htmlspecialchars($profilePhotoPath); ?>" alt="Profile photo">
-                        <?php else: ?>
-                            <div class="profile-photo-placeholder"><?php echo htmlspecialchars($initial); ?></div>
-                        <?php endif; ?>
+                        <div class="profile-photo-placeholder"><?php echo htmlspecialchars($initial); ?></div>
                     </div>
 
                     <p class="profile-name"><?php echo htmlspecialchars($username); ?></p>
-
-                    <form action="profile.php" method="POST" enctype="multipart/form-data" class="photo-form">
-                        <input type="hidden" name="action" value="update_photo">
-                        <label for="profile-photo-input" class="form-label mb-1">Edit photo</label>
-                        <input id="profile-photo-input" type="file" name="profile_photo" class="form-control form-control-sm mb-2" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
-                        <button type="submit" class="btn btn-primary btn-sm w-100">Save Photo</button>
-                    </form>
                 </div>
             </section>
 
@@ -438,6 +444,16 @@ $initial = strtoupper(substr($username, 0, 1));
                                     <label><input type="checkbox" name="countries[]" value="<?php echo htmlspecialchars($option); ?>" <?php echo in_array($option, $accountData["preferences"]["countries"], true) ? "checked" : ""; ?>> <?php echo htmlspecialchars($option); ?></label>
                                 <?php endforeach; ?>
                             </div>
+                            <?php if (count($customCountries) > 0): ?>
+                                <div class="pref-custom-section mt-3">
+                                    <div class="pref-custom-title">Custom countries</div>
+                                    <div class="pref-checkbox-grid">
+                                        <?php foreach ($customCountries as $customCountry): ?>
+                                            <label><input type="checkbox" name="countries[]" value="<?php echo htmlspecialchars($customCountry); ?>" checked> <?php echo htmlspecialchars($customCountry); ?></label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                             <label class="form-label mt-2 mb-1">Additional countries (comma-separated)</label>
                             <input type="text" name="countries_custom" class="form-control form-control-sm" placeholder="e.g. NZ, ZA">
                             <div class="pref-actions mt-2">
@@ -469,6 +485,16 @@ $initial = strtoupper(substr($username, 0, 1));
                                     <label><input type="checkbox" name="languages[]" value="<?php echo htmlspecialchars($option); ?>" <?php echo in_array($option, $accountData["preferences"]["languages"], true) ? "checked" : ""; ?>> <?php echo htmlspecialchars($option); ?></label>
                                 <?php endforeach; ?>
                             </div>
+                            <?php if (count($customLanguages) > 0): ?>
+                                <div class="pref-custom-section mt-3">
+                                    <div class="pref-custom-title">Custom languages</div>
+                                    <div class="pref-checkbox-grid">
+                                        <?php foreach ($customLanguages as $customLanguage): ?>
+                                            <label><input type="checkbox" name="languages[]" value="<?php echo htmlspecialchars($customLanguage); ?>" checked> <?php echo htmlspecialchars($customLanguage); ?></label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                             <label class="form-label mt-2 mb-1">Additional languages (comma-separated)</label>
                             <input type="text" name="languages_custom" class="form-control form-control-sm" placeholder="e.g. Korean, Dutch">
                             <div class="pref-actions mt-2">
@@ -500,6 +526,16 @@ $initial = strtoupper(substr($username, 0, 1));
                                     <label><input type="checkbox" name="sources[]" value="<?php echo htmlspecialchars($option); ?>" <?php echo in_array($option, $accountData["preferences"]["sources"], true) ? "checked" : ""; ?>> <?php echo htmlspecialchars($option); ?></label>
                                 <?php endforeach; ?>
                             </div>
+                            <?php if (count($customSources) > 0): ?>
+                                <div class="pref-custom-section mt-3">
+                                    <div class="pref-custom-title">Custom sources</div>
+                                    <div class="pref-checkbox-grid">
+                                        <?php foreach ($customSources as $customSource): ?>
+                                            <label><input type="checkbox" name="sources[]" value="<?php echo htmlspecialchars($customSource); ?>" checked> <?php echo htmlspecialchars($customSource); ?></label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                             <label class="form-label mt-2 mb-1">Additional sources (comma-separated)</label>
                             <input type="text" name="sources_custom" class="form-control form-control-sm" placeholder="e.g. TechCrunch, Wired">
                             <div class="pref-actions mt-2">
@@ -531,6 +567,21 @@ $initial = strtoupper(substr($username, 0, 1));
                                     <label><input type="checkbox" name="topics[]" value="<?php echo htmlspecialchars($option); ?>" <?php echo in_array($option, $accountData["preferences"]["topics"], true) ? "checked" : ""; ?>> <?php echo htmlspecialchars($option); ?></label>
                                 <?php endforeach; ?>
                             </div>
+<?php if (count($customTopics) === 0): ?>
+    <label class="form-label mt-3 mb-1">Custom topics</label>
+    <div class="pref-checkbox-grid">
+        <span class="pref-empty">No custom topics added.</span>
+    </div>
+<?php else: ?>
+    <div class="pref-custom-section mt-3">
+        <div class="pref-custom-title">Custom topics</div>
+        <div class="pref-checkbox-grid">
+            <?php foreach ($customTopics as $customTopic): ?>
+                <label><input type="checkbox" name="topics[]" value="<?php echo htmlspecialchars($customTopic); ?>" checked> <?php echo htmlspecialchars($customTopic); ?></label>
+            <?php endforeach; ?>
+        </div>
+    </div>
+<?php endif; ?>
                             <label class="form-label mt-2 mb-1">Additional topics (comma-separated)</label>
                             <input type="text" name="topics_custom" class="form-control form-control-sm" placeholder="e.g. AI, Startups">
                             <div class="pref-actions mt-2">

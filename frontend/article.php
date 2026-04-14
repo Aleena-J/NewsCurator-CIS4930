@@ -15,6 +15,10 @@ $country = isset($_GET["country"]) ? (string) $_GET["country"] : "";
 $date = isset($_GET["date"]) ? (string) $_GET["date"] : "";
 $language = isset($_GET["language"]) ? (string) $_GET["language"] : "";
 $image = isset($_GET["image"]) ? (string) $_GET["image"] : "";
+$description = isset($_GET["description"]) ? (string) $_GET["description"] : "";
+if (trim($description) === "Full text is unavailable in the news API lite version") {
+    $description = "";
+}
 
 
 
@@ -92,10 +96,15 @@ if ($url !== "") {
                 <h1 class="article-page-title"><?php echo $title !== "" ? htmlspecialchars($title) : "Article"; ?></h1>
                 <div class="card-rating-badge" id="article-total-score">&#9733; <?php echo $averageRating; ?>/5</div>
             </div>
-            <?php if ($publisher !== "") { ?>
-                <p class="article-page-site"><?php echo htmlspecialchars($publisher); ?></p>
-            <?php } ?>
-        </div>
+				<?php if ($publisher !== "") { ?>
+					<p class="article-page-site"><?php echo htmlspecialchars($publisher); ?></p>
+				<?php } ?>
+				<?php if ($description !== "") { ?>
+				<p class="article-description">
+					<?php echo htmlspecialchars($description); ?>
+				</p>
+				<?php } ?>
+			</div>
 
         <div class="article-page-wrap">
             <?php if ($image !== "") { ?>
