@@ -159,9 +159,15 @@ $sourceDomainMap = [
     "al jazeera" => "aljazeera.com",
     "the guardian" => "theguardian.com",
     "npr" => "npr.org",
-    "bloomberg" => "bloomberg.com",
+    "bloomberg" => "bloomberg.com"
 ];
-
+// Add custom-added user sources (domains) if not in map
+foreach ($userSources as $src) {
+    $key = strtolower($src);
+    if (!isset($sourceDomainMap[$key])) {
+        $sourceDomainMap[$key] = $src;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
