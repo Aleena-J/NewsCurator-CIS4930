@@ -149,7 +149,18 @@ try {
 }
 
 $topicsToDisplay = !empty($userTopics) ? $userTopics : $defaultTopics;
-$placeholderSources = ['CNN', 'APNews'];
+$placeholderSources = $userSources;
+
+$sourceDomainMap = [
+    "cnn" => "cnn.com",
+    "bbc" => "bbc.com",
+    "reuters" => "reuters.com",
+    "associated press" => "apnews.com",
+    "al jazeera" => "aljazeera.com",
+    "the guardian" => "theguardian.com",
+    "npr" => "npr.org",
+    "bloomberg" => "bloomberg.com",
+];
 
 ?>
 <!DOCTYPE html>
@@ -252,6 +263,7 @@ $placeholderSources = ['CNN', 'APNews'];
         var userCountries = <?php echo json_encode($userCountries); ?>;
         var userLanguages = <?php echo json_encode($userLanguages); ?>;
         var userSources   = <?php echo json_encode($userSources); ?>;
+        var sourceDomainMap = <?php echo json_encode($sourceDomainMap); ?>;
     </script>
     <script src="dashboard.js?v=<?php echo filemtime(__DIR__ . '/dashboard.js'); ?>"></script>
     <script>
