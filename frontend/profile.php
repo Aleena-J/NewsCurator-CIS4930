@@ -71,6 +71,28 @@ function parsePostedList(string $field): array
     return array_values(array_unique($clean));
 }
 
+function splitTopicsByCustom(array $savedTopics, array $defaultTopics): array
+{
+    $normalizedDefaults = [];
+    foreach ($defaultTopics as $topic) {
+        $normalizedDefaults[strtolower(trim((string) $topic))] = true;
+    }
+
+    $customTopics = [];
+    foreach ($savedTopics as $topic) {
+        $value = trim((string) $topic);
+        if ($value === "") {
+            continue;
+        }
+
+        if (!isset($normalizedDefaults[strtolower($value)])) {
+            $customTopics[] = $value;
+        }
+    }
+
+    return array_values(array_unique($customTopics));
+}
+
 function getCurrentAccountData(PDO $pdo, int $userId): array
 {
     $prefRow = null;
@@ -177,7 +199,6 @@ function ensureSourcesExist(PDO $pdo, array $sources): array
             try {
                 $insertStmt->execute([$name]);
             } catch (Throwable $e) {
-                // ignore and continue
             }
         }
     }
@@ -235,6 +256,7 @@ function getStoredPhotoPath(int $userId): string
     return "uploads/profile_photos/" . $latestFile;
 }
 
+$topicsOptions = ["Politics", "Science", "Sports", "Technology", "Health", "Business", "Environment", "Education", "Economy", "Crime"];
 $accountData = getCurrentAccountData($pdo, $userId);
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -310,10 +332,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $feedbackType = "danger";
             }
         } elseif ($section === "topics") {
-            $preferences["topics"] = array_values(array_unique(array_merge(
+            $keptCustomTopics = parsePostedList("topics_custom_keep");
+            $updatedTopics = array_values(array_unique(array_merge(
                 parsePostedList("topics"),
+                $keptCustomTopics,
                 parseCustomList(trim($_POST["topics_custom"] ?? ""))
             )));
+            $preferences["topics"] = $updatedTopics;
 
             try {
                 setUserPrefTopics($pdo, $userId, $preferences["topics"], 'selected');
@@ -355,7 +380,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 $countriesOptions = ["US", "GB", "CA", "AU", "DE", "FR", "IN", "JP", "BR", "MX"];
 $languageOptions = ["English", "Spanish", "French", "German", "Italian", "Portuguese", "Arabic", "Russian", "Hindi"];
 $sourcesOptions = ["BBC", "CNN", "Reuters", "Associated Press", "Al Jazeera", "The Guardian", "NPR", "Bloomberg"];
-$topicsOptions = ["Politics", "Science", "Sports", "Technology", "Health", "Business", "Environment", "Education", "Economy", "Crime"];
+$customTopics = splitTopicsByCustom($accountData["preferences"]["topics"], $topicsOptions);
 $profilePhotoPath = trim(getStoredPhotoPath($userId));
 $profilePhotoExists = $profilePhotoPath !== "" && file_exists(__DIR__ . "/" . $profilePhotoPath);
 $initial = strtoupper(substr($username, 0, 1));
@@ -530,6 +555,16 @@ $initial = strtoupper(substr($username, 0, 1));
                                 <?php foreach ($topicsOptions as $option): ?>
                                     <label><input type="checkbox" name="topics[]" value="<?php echo htmlspecialchars($option); ?>" <?php echo in_array($option, $accountData["preferences"]["topics"], true) ? "checked" : ""; ?>> <?php echo htmlspecialchars($option); ?></label>
                                 <?php endforeach; ?>
+                            </div>
+                            <label class="form-label mt-3 mb-1">Custom topics</label>
+                            <div class="pref-checkbox-grid">
+                                <?php if (count($customTopics) === 0): ?>
+                                    <span class="pref-empty">No custom topics added.</span>
+                                <?php else: ?>
+                                    <?php foreach ($customTopics as $customTopic): ?>
+                                        <label><input type="checkbox" name="topics_custom_keep[]" value="<?php echo htmlspecialchars($customTopic); ?>" checked> <?php echo htmlspecialchars($customTopic); ?></label>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </div>
                             <label class="form-label mt-2 mb-1">Additional topics (comma-separated)</label>
                             <input type="text" name="topics_custom" class="form-control form-control-sm" placeholder="e.g. AI, Startups">
