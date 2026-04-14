@@ -371,7 +371,7 @@ $(".source-tab").on("click", function() {
     // HARD CODED DOMAINS - SWITCH TO USER PREF
     var domainMap = {
         "cnn":       "cnn.com",
-        "bloomberg": "bloomberg.com"
+        "apnews": "apnews.com"
     };
 
     var domain = domainMap[sourceKey];
@@ -386,8 +386,8 @@ $(".source-tab").on("click", function() {
 
     currentSearchParams = {
         q: (baseQ ? baseQ + " " : "") + "site:" + domain,
-        language: '',
-        country: '',
+        language: userLanguages || [],
+        country: userCountries || [],
         category: currentTopicCategory
     };
     nextPageUrl = null;

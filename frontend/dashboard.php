@@ -149,7 +149,7 @@ try {
 }
 
 $topicsToDisplay = !empty($userTopics) ? $userTopics : $defaultTopics;
-$placeholderSources = ['CNN', 'Bloomberg'];
+$placeholderSources = ['CNN', 'APNews'];
 
 ?>
 <!DOCTYPE html>
