@@ -6,13 +6,13 @@ var CATEGORY_FILTER = {
     environment: "environment",
     health: "health",
     education: "education",
-    science: '"Science and Technology"',
-    technology: '"Science and Technology"',
-    business: '"Economy, Business and Finance"',
-    economy: '"Economy, Business and Finance"',
-    crime: '"Crime, Law and Justice"',
-    human_interest: '"Human Interest"',
-    war: '"War, Conflict and Unrest"',
+    science: 'Science and Technology',
+    technology: 'Science and Technology',
+    business: 'Economy, Business and Finance',
+    economy: 'Economy, Business and Finance',
+    crime: 'Crime, Law and Justice',
+    human_interest: 'Human Interest',
+    war: 'War, Conflict and Unrest',
 };
 
 var currentSearchParams = {
