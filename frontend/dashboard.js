@@ -1,4 +1,4 @@
-var PROXY = "../backend/api/news_proxy.php";
+var PROXY = "../backend/api/news_proxy_dash.php";
 var CATEGORY_FILTER = {
     sports: "sport",
     sport: "sport",
@@ -14,59 +14,78 @@ var CATEGORY_FILTER = {
     human_interest: '"Human Interest"',
     war: '"War, Conflict and Unrest"',
 };
-var currentSearchParams = { q: "performance_score:5", country: "", language: "", category: "" };
+
+var currentSearchParams = {
+    q: 'domain_rank:<5000 performance_score:>=3', language: '', country: '', category: ''};
 var nextPageUrl = null;
+var currentTopicCategory = "";
 
-function dashboardParamsFromTopic(topicName) {
-    var topic = (topicName || "").toString().trim().toLowerCase();
-    if (topic === "") {
-        return { q: "performance_score:5", country: "", language: "", category: "" };
-    }
 
-    var cat = CATEGORY_FILTER[topic];
-    if (cat) {
-        return { q: "category:" + cat, country: "", language: "", category: "" };
-    }
-    return { q: 'text:"' + topicName + '"', country: "", language: "", category: "" };
-}
 
 function buildProxyUrl(params) {
     var p = new URLSearchParams();
     if (params.q) {
         p.set("q", params.q);
     }
-    if (params.country) {
-        p.set("country", params.country);
-    }
-    if (params.language) {
-        p.set("language", params.language);
-    }
     if (params.category) {
         p.set("category", params.category);
+    }
+
+    if (params.language && params.language !== '') {
+        var langs = Array.isArray(params.language)
+            ? params.language
+            : params.language.split(',');
+        for (var i = 0; i < langs.length; i++) {
+            if ((langs[i] + '').trim() !== '') {
+                p.append('language[]', (langs[i] + '').trim());
+            }
+        }
+    }
+
+    if (params.country && params.country !== '') {
+        var countries = Array.isArray(params.country)
+            ? params.country
+            : params.country.split(',');
+        for (var j = 0; j < countries.length; j++) {
+            if ((countries[j] + '').trim() !== '') {
+                p.append('country[]', (countries[j] + '').trim());
+            }
+        }
     }
     return PROXY + "?" + p.toString();
 }
 
-function loadNews(params, append) {
-    if (params.q && params.q.length > 100) {
-        $("#results-info").text(
-            "This query is too long for the API (" +
-            params.q.length +
-            " characters). Reduce selected filters in your profile."
-        );
-        $("#news-grid").empty();
-        $("#load-more-btn").hide();
-        return;
+function paramsFromTab($tab) {
+    var raw = $tab.data('params');
+    if (raw && typeof raw === 'object') {
+        return {
+            q: raw.q || '',
+            language: raw.language || '',
+            country: raw.country || '',
+            category: raw.category || ''
+        };
     }
+    return {
+        q: 'domain_rank:<5000',
+        language: '', country: '', category: ''
+    };
+}
 
+function loadNews(params, append) {
     // Append is for paginations, appends new articles once load more is pressed
-    var url = buildProxyUrl(params);
+    var url;
 
     if (append && nextPageUrl != null) {
-        url = PROXY + "?next=" + encodeURIComponent(nextPageUrl);
+        url = PROXY + '?next=' + encodeURIComponent(nextPageUrl);
     } else {
         url = buildProxyUrl(params);
     }
+
+    //debug statements
+    console.group("loadNews()");
+    console.log("params :", JSON.stringify(params));
+    console.log("url    :", url);
+    console.groupEnd();
 
     if (!append) {
         $("#news-grid").html("<p class='loading-msg'>Loading articles...</p>");
@@ -208,6 +227,11 @@ var today = new Date();
 $("#today-date").text(today.toDateString());
 
 $(document).ready(function() {
+    var $active = $('.topic-tab.active');
+    if ($active.length) {
+        currentSearchParams = paramsFromTab($active);
+    }
+    console.log('Dashboard init params:', JSON.stringify(currentSearchParams));
     loadNews(currentSearchParams, false);
 });
 
@@ -226,16 +250,12 @@ $("#search-btn").on("click", function() {
         return;
     }
 
-    currentSearchParams = {
-        q: q,
-        country: "",
-        language: "",
-        category: "",
-    };
-    nextPageUrl = null;
-
-    $(".topic-tab").removeClass("active");
-
+    currentSearchParams  = { q: q, language: '', country: '', category: '' };
+    currentTopicCategory = '';
+    nextPageUrl          = null;
+    $('.topic-tab').removeClass('active');
+    $('#source-tabs-wrap').hide();
+    $('.source-tab').removeClass('active');
     loadNews(currentSearchParams, false);
 });
 
@@ -253,9 +273,54 @@ $(".topic-tab").on("click", function() {
     $(".topic-tab").removeClass("active");
     $(this).addClass("active");
  
-    var topic = $(this).data("topic");
-    currentSearchParams = dashboardParamsFromTopic(topic);
+    var isPopular = $(this).data('is-popular') == '1';
+    var topic     = ($(this).data('topic') || '').toString().trim().toLowerCase();
+
+    $(".source-tab").removeClass("active");
+
+    if (isPopular) {
+        $("#source-tabs-wrap").hide();
+        currentTopicCategory = "";
+    } else {
+        $("#source-tabs-wrap").show();
+        var topicKey = (topic || "").toString().trim().toLowerCase();
+        currentTopicCategory = CATEGORY_FILTER[topic] || '';
+    }
+
+    currentSearchParams = paramsFromTab($(this));
     nextPageUrl = null;
+    //debug
+    console.log('Topic tab clicked:', topic || 'Popular', '| params:', JSON.stringify(currentSearchParams));
+    loadNews(currentSearchParams, false);
+});
+
+$(".source-tab").on("click", function() {
+    $(".source-tab").removeClass("active");
+    $(this).addClass("active");
+
+    var sourceKey = $(this).data("source");
+
+    // HARD CODED DOMAINS - SWITCH TO USER PREF
+    var domainMap = {
+        "cnn":       "cnn.com",
+        "bloomberg": "bloomberg.com"
+    };
+
+    var domain = domainMap[sourceKey];
+    if (!domain) {
+        console.warn("No domain mapping for source key:", sourceKey);
+        return;
+    }
+
+    currentSearchParams = {
+        q: 'site:' + domain,
+        language: '',
+        country: '',
+        category: currentTopicCategory
+    };
+    nextPageUrl = null;
+
+    console.log('Source tab clicked:', sourceKey, '| params:', JSON.stringify(currentSearchParams));
     loadNews(currentSearchParams, false);
 });
 
