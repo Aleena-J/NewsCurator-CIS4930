@@ -16,6 +16,9 @@ $date = isset($_GET["date"]) ? (string) $_GET["date"] : "";
 $language = isset($_GET["language"]) ? (string) $_GET["language"] : "";
 $image = isset($_GET["image"]) ? (string) $_GET["image"] : "";
 $description = isset($_GET["description"]) ? (string) $_GET["description"] : "";
+if (trim($description) === "Full text is unavailable in the news API lite version") {
+    $description = "";
+}
 
 
 
