@@ -13,6 +13,31 @@ $username = $_SESSION["username"] ?? "User";
 $feedback = "";
 $feedbackType = "";
 
+// Add two lists of all possible countries to their ISO codes and languages for validation when processing form submissions.
+$countriesOptions = [
+    "AF", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR",
+    "AM", "AW", "AU", "AT", "AZ", "BS", "BH", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO",
+    "BQ", "BA", "BW", "BV", "BR", "IO", "BN", "BG", "BF", "BI", "CV", "KH", "CM", "CA", "KY", "CF",
+    "TD", "CL", "CN", "CX", "CC", "CO", "KM", "CG", "CD", "CK", "CR", "CI", "HR", "CU", "CW", "CY", "CZ", "DK", "DJ", "DM", "DO",
+    "EC", "EG", "SV", "GQ", "ER", "EE", "ET", "FK", "FO", "FJ", "FI", "FR", "GF", "PF", "TF", "GA", "GM", "GE", "DE", "GH",
+    "GI", "GR", "GL", "GD", "GP", "GU", "GT", "GG", "GN", "GW", "GY", "HT", "HM", "VA", "HN", "HK", "HU", "IS", "IN", "ID", "IR", "IQ",
+    "IE", "IM", "IL", "IT", "JM", "JP", "JE", "JO", "KZ", "KE", "KI", "KP", "KR", "KW", "KG", "LA", "LV", "LB", "LS", "LR", "LY",
+    "LI", "LT", "LU", "MO", "MK", "MG", "MW", "MY", "MV", "ML", "MT", "MH", "MQ", "MR", "MU", "YT", "MX", "FM", "MD", "MC", "MN", "ME",
+    "MS", "MA", "MZ", "MM", "NA", "NR", "NP", "NL", "NC", "NZ", "NI", "NE", "NG", "NU", "NF", "MP", "NO", "OM", "PK", "PW", "PS", "PA",
+    "PG", "PY", "PE", "PH", "PN", "PL", "PT", "PR", "QA", "RE", "RO", "RU", "RW", "BL", "SH", "KN", "LC", "MF", "PM", "VC", "WS", "SM",
+    "ST", "SA", "SN", "RS", "SC", "SL", "SG", "SX", "SK", "SI", "SB", "SO", "ZA", "GS", "SS", "ES", "LK", "SD", "SR", "SJ", "SE", "CH", "SY",
+    "TW", "TJ", "TZ", "TH", "TL", "TG", "TK", "TO", "TT", "TN", "TR", "TM", "TC", "TV", "UG", "UA", "AE", "GB", "US", "UM", "UY", "UZ",
+    "VU", "VE", "VN", "VG", "VI", "WF", "EH", "YE", "ZM", "ZW"
+];
+
+$languageOptions = ["English", "Mandarin", "Chinese", "Hindi", "Spanish", "French", "Arabic", "Bengali", "Portuguese", "Russian", 
+    "Urdu", "Indonesian", "German", "Japanese", "Nigerian", "Egyptian Arabic", "Marathi", "Telugu", "Turkish",
+    "Tamil", "Cantonese", "Vietnamese", "Tagalog", "Korean", "Italian", "Hausa", "Thai", "Gujarati", "Javanese", 
+    "Persian", "Farsi", "Polish", "Ukrainian", "Malayalam", "Kannada", "Odia", "Maithili",
+    "Burmese", "Sundanese", "Yoruba", "Amharic", "Romanian", "Pashto", "Serbo-Croatian", "Malay", "Zulu",
+    "Dutch", "Igbo", "Sinhalese"
+];
+
 function decodePrefList(?string $json): array
 {
     if (!$json) {
@@ -310,15 +335,39 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $preferences = $accountData["preferences"];
 
         if ($section === "countries") {
-            $preferences["countries"] = array_values(array_unique(array_merge(
-                parsePostedList("countries"),
-                parseCustomList(trim($_POST["countries_custom"] ?? ""))
-            )));
+            $customCountriesInput = parseCustomList(trim($_POST["countries_custom"] ?? ""));
+            $invalidCountries = [];
+            foreach ($customCountriesInput as $country) {
+                if (!in_array(strtoupper($country), $countriesOptions, true)) {
+                    $invalidCountries[] = $country;
+                }
+            }
+            if (!empty($invalidCountries)) {
+                $feedback = "Invalid country code(s): " . implode(", ", $invalidCountries) . ". Please use valid ISO country codes.";
+                $feedbackType = "danger";
+            } else {
+                $preferences["countries"] = array_values(array_unique(array_merge(
+                    parsePostedList("countries"),
+                    $customCountriesInput
+                )));
+            }
         } elseif ($section === "languages") {
-            $preferences["languages"] = array_values(array_unique(array_merge(
-                parsePostedList("languages"),
-                parseCustomList(trim($_POST["languages_custom"] ?? ""))
-            )));
+            $customLanguagesInput = parseCustomList(trim($_POST["languages_custom"] ?? ""));
+            $invalidLanguages = [];
+            foreach ($customLanguagesInput as $language) {
+                if (!in_array(ucfirst(strtolower($language)), $languageOptions, true)) {
+                    $invalidLanguages[] = $language;
+                }
+            }
+            if (!empty($invalidLanguages)) {
+                $feedback = "Invalid language(s): " . implode(", ", $invalidLanguages) . ". Language is not supported. Please use valid language names.";
+                $feedbackType = "danger";
+            } else {
+                $preferences["languages"] = array_values(array_unique(array_merge(
+                    parsePostedList("languages"),
+                    $customLanguagesInput
+                )));
+            }
         } elseif ($section === "sources") {
             $preferences["sources"] = array_values(array_unique(array_merge(
                 parsePostedList("sources"),
@@ -380,7 +429,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 $countriesOptions = ["US", "GB", "CA", "AU", "DE", "FR", "IN", "JP", "BR", "MX"];
 $languageOptions = ["English", "Spanish", "French", "German", "Italian", "Portuguese", "Arabic", "Russian", "Hindi"];
 $sourcesOptions = ["BBC", "CNN", "Reuters", "Associated Press", "Al Jazeera", "The Guardian", "NPR", "Bloomberg"];
-$customTopics = splitTopicsByCustom($accountData["preferences"]["topics"], $topicsOptions);
+$topicsOptions = ["Politics", "Science", "Sports", "Technology", "Health", "Business", "Environment", "Education", "Economy", "Crime"];
+
+$customCountries = array_values(array_diff($accountData["preferences"]["countries"], $countriesOptions));
+$customLanguages = array_values(array_diff($accountData["preferences"]["languages"], $languageOptions));
+$customSources = array_values(array_diff($accountData["preferences"]["sources"], $sourcesOptions));
+$customTopics = array_values(array_diff($accountData["preferences"]["topics"], $topicsOptions));
 $profilePhotoPath = trim(getStoredPhotoPath($userId));
 $profilePhotoExists = $profilePhotoPath !== "" && file_exists(__DIR__ . "/" . $profilePhotoPath);
 $initial = strtoupper(substr($username, 0, 1));
@@ -463,6 +517,16 @@ $initial = strtoupper(substr($username, 0, 1));
                                     <label><input type="checkbox" name="countries[]" value="<?php echo htmlspecialchars($option); ?>" <?php echo in_array($option, $accountData["preferences"]["countries"], true) ? "checked" : ""; ?>> <?php echo htmlspecialchars($option); ?></label>
                                 <?php endforeach; ?>
                             </div>
+                            <?php if (count($customCountries) > 0): ?>
+                                <div class="pref-custom-section mt-3">
+                                    <div class="pref-custom-title">Custom countries</div>
+                                    <div class="pref-checkbox-grid">
+                                        <?php foreach ($customCountries as $customCountry): ?>
+                                            <label><input type="checkbox" name="countries[]" value="<?php echo htmlspecialchars($customCountry); ?>" checked> <?php echo htmlspecialchars($customCountry); ?></label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                             <label class="form-label mt-2 mb-1">Additional countries (comma-separated)</label>
                             <input type="text" name="countries_custom" class="form-control form-control-sm" placeholder="e.g. NZ, ZA">
                             <div class="pref-actions mt-2">
@@ -494,6 +558,16 @@ $initial = strtoupper(substr($username, 0, 1));
                                     <label><input type="checkbox" name="languages[]" value="<?php echo htmlspecialchars($option); ?>" <?php echo in_array($option, $accountData["preferences"]["languages"], true) ? "checked" : ""; ?>> <?php echo htmlspecialchars($option); ?></label>
                                 <?php endforeach; ?>
                             </div>
+                            <?php if (count($customLanguages) > 0): ?>
+                                <div class="pref-custom-section mt-3">
+                                    <div class="pref-custom-title">Custom languages</div>
+                                    <div class="pref-checkbox-grid">
+                                        <?php foreach ($customLanguages as $customLanguage): ?>
+                                            <label><input type="checkbox" name="languages[]" value="<?php echo htmlspecialchars($customLanguage); ?>" checked> <?php echo htmlspecialchars($customLanguage); ?></label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                             <label class="form-label mt-2 mb-1">Additional languages (comma-separated)</label>
                             <input type="text" name="languages_custom" class="form-control form-control-sm" placeholder="e.g. Korean, Dutch">
                             <div class="pref-actions mt-2">
@@ -525,6 +599,16 @@ $initial = strtoupper(substr($username, 0, 1));
                                     <label><input type="checkbox" name="sources[]" value="<?php echo htmlspecialchars($option); ?>" <?php echo in_array($option, $accountData["preferences"]["sources"], true) ? "checked" : ""; ?>> <?php echo htmlspecialchars($option); ?></label>
                                 <?php endforeach; ?>
                             </div>
+                            <?php if (count($customSources) > 0): ?>
+                                <div class="pref-custom-section mt-3">
+                                    <div class="pref-custom-title">Custom sources</div>
+                                    <div class="pref-checkbox-grid">
+                                        <?php foreach ($customSources as $customSource): ?>
+                                            <label><input type="checkbox" name="sources[]" value="<?php echo htmlspecialchars($customSource); ?>" checked> <?php echo htmlspecialchars($customSource); ?></label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                             <label class="form-label mt-2 mb-1">Additional sources (comma-separated)</label>
                             <input type="text" name="sources_custom" class="form-control form-control-sm" placeholder="e.g. TechCrunch, Wired">
                             <div class="pref-actions mt-2">
@@ -556,16 +640,21 @@ $initial = strtoupper(substr($username, 0, 1));
                                     <label><input type="checkbox" name="topics[]" value="<?php echo htmlspecialchars($option); ?>" <?php echo in_array($option, $accountData["preferences"]["topics"], true) ? "checked" : ""; ?>> <?php echo htmlspecialchars($option); ?></label>
                                 <?php endforeach; ?>
                             </div>
-                            <label class="form-label mt-3 mb-1">Custom topics</label>
-                            <div class="pref-checkbox-grid">
-                                <?php if (count($customTopics) === 0): ?>
-                                    <span class="pref-empty">No custom topics added.</span>
-                                <?php else: ?>
-                                    <?php foreach ($customTopics as $customTopic): ?>
-                                        <label><input type="checkbox" name="topics_custom_keep[]" value="<?php echo htmlspecialchars($customTopic); ?>" checked> <?php echo htmlspecialchars($customTopic); ?></label>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </div>
+<?php if (count($customTopics) === 0): ?>
+    <label class="form-label mt-3 mb-1">Custom topics</label>
+    <div class="pref-checkbox-grid">
+        <span class="pref-empty">No custom topics added.</span>
+    </div>
+<?php else: ?>
+    <div class="pref-custom-section mt-3">
+        <div class="pref-custom-title">Custom topics</div>
+        <div class="pref-checkbox-grid">
+            <?php foreach ($customTopics as $customTopic): ?>
+                <label><input type="checkbox" name="topics[]" value="<?php echo htmlspecialchars($customTopic); ?>" checked> <?php echo htmlspecialchars($customTopic); ?></label>
+            <?php endforeach; ?>
+        </div>
+    </div>
+<?php endif; ?>
                             <label class="form-label mt-2 mb-1">Additional topics (comma-separated)</label>
                             <input type="text" name="topics_custom" class="form-control form-control-sm" placeholder="e.g. AI, Startups">
                             <div class="pref-actions mt-2">
