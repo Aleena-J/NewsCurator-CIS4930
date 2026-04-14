@@ -537,7 +537,8 @@ $initial = strtoupper(substr($username, 0, 1));
                                 </div>
                             <?php endif; ?>
                             <label class="form-label mt-2 mb-1">Additional sources (comma-separated)</label>
-                            <input type="text" name="sources_custom" class="form-control form-control-sm" placeholder="e.g. TechCrunch, Wired">
+                            <p style="line-height: 0.8; font-style: italic; color: #9a9c9f; font-size: 0.875rem;">Please enter the domain name of the source</p>
+                            <input type="text" name="sources_custom" class="form-control form-control-sm" placeholder="e.g. nbcnews.com, wired.com">
                             <div class="pref-actions mt-2">
                                 <button type="submit" class="btn btn-primary btn-sm">Save Sources</button>
                                 <button type="button" class="btn btn-secondary btn-sm pref-cancel-btn">Cancel</button>
