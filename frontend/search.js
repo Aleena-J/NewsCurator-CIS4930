@@ -158,6 +158,11 @@ function buildProxyUrl(params) {
     return PROXY + "?" + p.toString();
 }
 
+function is404Title(post) {
+    var title = (post && post.title ? String(post.title) : "").trim().toLowerCase();
+    return title === "404";
+}
+
 function loadNews(params, append) {
     if (append && !nextPageUrl) {
         return;
@@ -216,6 +221,9 @@ function loadNews(params, append) {
             var added = 0;
             for (var i = 0; i < posts.length; i++) {
                 var post = posts[i];
+                if (is404Title(post)) {
+                    continue;
+                }
                 var key = post.url || "";
                 if (key && seenArticleUrls[key]) {
                     continue;
