@@ -6,19 +6,22 @@ var CATEGORY_FILTER = {
     environment: "environment",
     health: "health",
     education: "education",
-    science: '"Science and Technology"',
-    technology: '"Science and Technology"',
-    business: '"Economy, Business and Finance"',
-    economy: '"Economy, Business and Finance"',
-    crime: '"Crime, Law and Justice"',
-    human_interest: '"Human Interest"',
-    war: '"War, Conflict and Unrest"',
+    science: 'Science and Technology',
+    technology: 'Science and Technology',
+    business: 'Economy, Business and Finance',
+    economy: 'Economy, Business and Finance',
+    crime: 'Crime, Law and Justice',
+    human_interest: 'Human Interest',
+    war: 'War, Conflict and Unrest',
 };
 
 var currentSearchParams = {
     q: 'domain_rank:<5000 performance_score:>=3', language: '', country: '', category: ''};
 var nextPageUrl = null;
 var currentTopicCategory = "";
+var dashboardLoadedCount = 0;
+var seenDashboardArticleUrls = {};
+var dashboardRequestInFlight = false;
 
 
 
@@ -71,8 +74,20 @@ function paramsFromTab($tab) {
     };
 }
 
+function is404Title(post) {
+    var title = (post && post.title ? String(post.title) : "").trim().toLowerCase();
+    return title === "404";
+}
+
 function loadNews(params, append) {
     // Append is for paginations, appends new articles once load more is pressed
+    if (append && !nextPageUrl) {
+        return;
+    }
+    if (append && dashboardRequestInFlight) {
+        return;
+    }
+
     var url;
 
     if (append && nextPageUrl != null) {
@@ -88,45 +103,98 @@ function loadNews(params, append) {
     console.groupEnd();
 
     if (!append) {
+        dashboardLoadedCount = 0;
+        seenDashboardArticleUrls = {};
         $("#news-grid").html("<p class='loading-msg'>Loading articles...</p>");
         $("#load-more-btn").hide();
     }
 
+    if (append) {
+        dashboardRequestInFlight = true;
+        $("#load-more-btn").prop("disabled", true);
+    }
 	
     $.ajax({
         url: url,
         method: "GET",
+        dataType: "json",
+        complete: function () {
+            dashboardRequestInFlight = false;
+            $("#load-more-btn").prop("disabled", false);
+        },
         success: function(data) {
-            var posts = data.posts;
-            nextPageUrl = data.next;
+            var posts = data.posts || [];
+            nextPageUrl = data.next || null;
 
             $("#results-info").text(data.totalResults + " articles found");
 
-            if (posts.length == 0) {
-                $("#news-grid").html("<p class='empty-msg'>No articles found. Try a different search.</p>");
+            if (posts.length === 0) {
+                if (!append) {
+                    $("#news-grid").html("<p class='empty-msg'>No articles found. Try a different search.</p>");
+                }
+                nextPageUrl = null;
+                $("#load-more-btn").hide();
                 return;
             }
 
             var html = "";
+            var added = 0;
             for (var i = 0; i < posts.length; i++) {
-                html += makeCard(posts[i]);
+                var post = posts[i];
+                if (is404Title(post)) {
+                    continue;
+                }
+                var key = post.url || "";
+                if (key && seenDashboardArticleUrls[key]) {
+                    continue;
+                }
+                if (key) {
+                    seenDashboardArticleUrls[key] = true;
+                }
+                html += makeCard(post);
+                added++;
             }
 
             if (append) {
                 $("#news-grid").append(html);
+                dashboardLoadedCount += added;
             } else {
                 $("#news-grid").html(html);
+                dashboardLoadedCount = added;
             }
 			
 			updateDashboardRatings();
 
-            if (nextPageUrl != null) {
+            var totalReported = Number(data.totalResults);
+            var allLoaded =
+                Number.isFinite(totalReported) &&
+                totalReported >= 0 &&
+                dashboardLoadedCount >= totalReported;
+            if (allLoaded) {
+                nextPageUrl = null;
+            }
+
+            var raw = data.moreResultsAvailable;
+            var moreCount = raw != null && raw !== "" ? Number(raw) : NaN;
+            if (Number.isFinite(moreCount) && moreCount <= 0) {
+                nextPageUrl = null;
+            }
+
+            var hasMore =
+                !!nextPageUrl &&
+                !allLoaded &&
+                (Number.isFinite(moreCount) ? moreCount > 0 : !!nextPageUrl);
+
+            if (hasMore) {
                 $("#load-more-btn").show();
             } else {
                 $("#load-more-btn").hide();
             }
         },
         error: function() {
+            nextPageUrl = null;
+            dashboardLoadedCount = 0;
+            $("#load-more-btn").hide();
             $("#news-grid").html("<p class='error-msg'>Could not load articles. Check that API key is set.</p>");
         }
     });
