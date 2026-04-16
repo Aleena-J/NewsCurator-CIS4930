@@ -153,13 +153,12 @@ $placeholderSources = $userSources;
 
 $sourceDomainMap = [
     "cnn" => "cnn.com",
-    "bbc" => "bbc.com",
-    "reuters" => "reuters.com",
     "associated press" => "apnews.com",
     "al jazeera" => "aljazeera.com",
-    "the guardian" => "theguardian.com",
     "npr" => "npr.org",
-    "bloomberg" => "bloomberg.com",
+    "pbs" => "pbs.org",
+    "nbc" => "nbcnews.com",
+    "business insider" => "businessinsider.com"
 ];
 
 ?>

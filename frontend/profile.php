@@ -369,7 +369,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 $countriesOptions = ["US", "GB", "CA", "AU", "DE", "FR", "IN", "JP", "BR", "MX"];
 $languageOptions = ["English", "Spanish", "French", "German", "Italian", "Portuguese", "Arabic", "Russian", "Hindi"];
-$sourcesOptions = ["BBC", "CNN", "Reuters", "Associated Press", "Al Jazeera", "The Guardian", "NPR", "Bloomberg"];
+$sourcesOptions = [
+    "CNN",
+    "Associated Press",
+    "Al Jazeera",
+    "NPR",
+    "PBS",
+    "NBC",
+    "Business Insider",
+];
 $topicsOptions = ["Politics", "Science", "Sports", "Technology", "Health", "Business", "Environment", "Education", "Economy", "Crime"];
 
 $customCountries = array_values(array_diff($accountData["preferences"]["countries"], $countriesOptions));
@@ -536,8 +544,8 @@ $initial = strtoupper(substr($username, 0, 1));
                                     </div>
                                 </div>
                             <?php endif; ?>
-                            <label class="form-label mt-2 mb-1">Additional sources (comma-separated)</label>
-                            <input type="text" name="sources_custom" class="form-control form-control-sm" placeholder="e.g. TechCrunch, Wired">
+                            <label class="form-label mt-2 mb-1">Additional source urls (No paywalled sources)</label>
+                            <input type="text" name="sources_custom" class="form-control form-control-sm" placeholder="e.g. wired.com">
                             <div class="pref-actions mt-2">
                                 <button type="submit" class="btn btn-primary btn-sm">Save Sources</button>
                                 <button type="button" class="btn btn-secondary btn-sm pref-cancel-btn">Cancel</button>
