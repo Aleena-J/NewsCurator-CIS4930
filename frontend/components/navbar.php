@@ -9,21 +9,21 @@
 ?>
 
 <nav class="navbar-custom">
-    <a class="brand" href="dashboard.php">NewsCurator</a>
+    <a class="brand" href="../frontend/dashboard.php">NewsCurator</a>
 
     <ul class="nav-links">
-        <li><a href="dashboard.php" <?php if ($page == "dashboard.php") echo 'class="active"'; ?>>Home</a></li>
-        <li><a href="search.php" <?php if ($page == "search.php") echo 'class="active"'; ?>>Search</a></li>
+        <li><a href="../frontend/dashboard.php" <?php if ($page == "../frontend/dashboard.php") echo 'class="active"'; ?>>Home</a></li>
+        <li><a href="../frontend/search.php" <?php if ($page == "../frontend/search.php") echo 'class="active"'; ?>>Search</a></li>
     </ul>
 
     <div class="nav-right">
         <?php if ($loggedIn) { ?>
             <span class="nav-username">Hi, <?php echo htmlspecialchars($username); ?>!</span>
-            <a href="profile.php" class="btn-nav btn-nav-outline">Profile</a>
+            <a href="../frontend/profile.php" class="btn-nav btn-nav-outline">Profile</a>
             <a href="../backend/auth/logout.php" class="btn-nav btn-nav-solid">Logout</a>
         <?php } else { ?>
-            <a href="login.php" class="btn-nav btn-nav-outline">Login</a>
-            <a href="register.php" class="btn-nav btn-nav-solid">Register</a>
+            <a href="../frontend/login.php" class="btn-nav btn-nav-outline">Login</a>
+            <a href="../frontend/register.php" class="btn-nav btn-nav-solid">Register</a>
         <?php } ?>
     </div>
 </nav>

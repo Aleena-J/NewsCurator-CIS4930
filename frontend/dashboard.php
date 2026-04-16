@@ -2,7 +2,7 @@
 session_start();
 
 if (!isset($_SESSION["user_id"])) {
-    header("Location: login.php");
+    header("Location: ../frontend/login.php");
     exit();
 }
 
@@ -160,7 +160,13 @@ $sourceDomainMap = [
     "nbc" => "nbcnews.com",
     "business insider" => "businessinsider.com"
 ];
-
+// Add custom-added user sources (domains) if not in map
+foreach ($userSources as $src) {
+    $key = strtolower($src);
+    if (!isset($sourceDomainMap[$key])) {
+        $sourceDomainMap[$key] = $src;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
