@@ -38,28 +38,6 @@ $languageOptions = ["English", "Mandarin", "Chinese", "Hindi", "Spanish", "Frenc
     "Dutch", "Igbo", "Sinhalese"
 ];
 
-function decodePrefList(?string $json): array
-{
-    if (!$json) {
-        return [];
-    }
-
-    $decoded = json_decode($json, true);
-    if (!is_array($decoded)) {
-        return [];
-    }
-
-    $clean = [];
-    foreach ($decoded as $item) {
-        $item = trim((string) $item);
-        if ($item !== "") {
-            $clean[] = $item;
-        }
-    }
-
-    return array_values(array_unique($clean));
-}
-
 function parseCustomList(string $raw): array
 {
     $parts = preg_split('/,/', $raw);
@@ -120,13 +98,22 @@ function splitTopicsByCustom(array $savedTopics, array $defaultTopics): array
 
 function getCurrentAccountData(PDO $pdo, int $userId): array
 {
-    $prefRow = null;
+    $countryItems = [];
     try {
-        $prefStmt = $pdo->prepare("SELECT countries, languages, sources, topics FROM user_preferences WHERE user_id = ?");
-        $prefStmt->execute([$userId]);
-        $prefRow = $prefStmt->fetch(PDO::FETCH_ASSOC);
+        $countryStmt = $pdo->prepare("SELECT country FROM user_pref_country WHERE user_id = ? ORDER BY country");
+        $countryStmt->execute([$userId]);
+        $countryItems = $countryStmt->fetchAll(PDO::FETCH_COLUMN, 0);
     } catch (Throwable $e) {
-        $prefRow = null;
+        $countryItems = [];
+    }
+
+    $languageItems = [];
+    try {
+        $languageStmt = $pdo->prepare("SELECT language FROM user_pref_language WHERE user_id = ? ORDER BY language");
+        $languageStmt->execute([$userId]);
+        $languageItems = $languageStmt->fetchAll(PDO::FETCH_COLUMN, 0);
+    } catch (Throwable $e) {
+        $languageItems = [];
     }
 
     $topicItems = [];
@@ -135,8 +122,7 @@ function getCurrentAccountData(PDO $pdo, int $userId): array
         $topicStmt->execute([$userId]);
         $topicItems = $topicStmt->fetchAll(PDO::FETCH_COLUMN, 0);
     } catch (Throwable $e) {
-        // fall back to the pre-existing JSON-based field if the new table isn't available yet
-        $topicItems = decodePrefList($prefRow["topics"] ?? null);
+        $topicItems = [];
     }
 
     $sourceItems = [];
@@ -145,18 +131,122 @@ function getCurrentAccountData(PDO $pdo, int $userId): array
         $sourceStmt->execute([$userId]);
         $sourceItems = $sourceStmt->fetchAll(PDO::FETCH_COLUMN, 0);
     } catch (Throwable $e) {
-        // fall back to the pre-existing JSON-based field if the new table isn't available yet
-        $sourceItems = decodePrefList($prefRow["sources"] ?? null);
+        $sourceItems = [];
     }
 
     return [
         "preferences" => [
-            "countries" => decodePrefList($prefRow["countries"] ?? null),
-            "languages" => decodePrefList($prefRow["languages"] ?? null),
+            "countries" => array_values(array_unique(array_map('trim', $countryItems))),
+            "languages" => array_values(array_unique(array_map('trim', $languageItems))),
             "sources" => array_values(array_unique(array_map('trim', $sourceItems))),
             "topics" => array_values(array_unique(array_map('trim', $topicItems))),
         ],
     ];
+}
+
+function ensureCountriesExist(PDO $pdo, array $countries): array
+{
+    $countries = array_values(array_unique(array_filter(array_map('trim', $countries))));
+    if (count($countries) === 0) {
+        return [];
+    }
+
+    // Validate that countries are valid ISO codes
+    $validCountryCodes = [
+        "AF", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR",
+        "AM", "AW", "AU", "AT", "AZ", "BS", "BH", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO",
+        "BQ", "BA", "BW", "BV", "BR", "IO", "BN", "BG", "BF", "BI", "CV", "KH", "CM", "CA", "KY", "CF",
+        "TD", "CL", "CN", "CX", "CC", "CO", "KM", "CG", "CD", "CK", "CR", "CI", "HR", "CU", "CW", "CY", "CZ", "DK", "DJ", "DM", "DO",
+        "EC", "EG", "SV", "GQ", "ER", "EE", "ET", "FK", "FO", "FJ", "FI", "FR", "GF", "PF", "TF", "GA", "GM", "GE", "DE", "GH",
+        "GI", "GR", "GL", "GD", "GP", "GU", "GT", "GG", "GN", "GW", "GY", "HT", "HM", "VA", "HN", "HK", "HU", "IS", "IN", "ID", "IR", "IQ",
+        "IE", "IM", "IL", "IT", "JM", "JP", "JE", "JO", "KZ", "KE", "KI", "KP", "KR", "KW", "KG", "LA", "LV", "LB", "LS", "LR", "LY",
+        "LI", "LT", "LU", "MO", "MK", "MG", "MW", "MY", "MV", "ML", "MT", "MH", "MQ", "MR", "MU", "YT", "MX", "FM", "MD", "MC", "MN", "ME",
+        "MS", "MA", "MZ", "MM", "NA", "NR", "NP", "NL", "NC", "NZ", "NI", "NE", "NG", "NU", "NF", "MP", "NO", "OM", "PK", "PW", "PS", "PA",
+        "PG", "PY", "PE", "PH", "PN", "PL", "PT", "PR", "QA", "RE", "RO", "RU", "RW", "BL", "SH", "KN", "LC", "MF", "PM", "VC", "WS", "SM",
+        "ST", "SA", "SN", "RS", "SC", "SL", "SG", "SX", "SK", "SI", "SB", "SO", "ZA", "GS", "SS", "ES", "LK", "SD", "SR", "SJ", "SE", "CH", "SY",
+        "TW", "TJ", "TZ", "TH", "TL", "TG", "TK", "TO", "TT", "TN", "TR", "TM", "TC", "TV", "UG", "UA", "AE", "GB", "US", "UM", "UY", "UZ",
+        "VU", "VE", "VN", "VG", "VI", "WF", "EH", "YE", "ZM", "ZW"
+    ];
+
+    $countryMap = [];
+    foreach ($countries as $country) {
+        $code = strtoupper(trim($country));
+        if (in_array($code, $validCountryCodes, true)) {
+            $countryMap[$country] = $code;
+        }
+    }
+
+    return $countryMap;
+}
+
+function ensureLanguagesExist(PDO $pdo, array $languages): array
+{
+    $languages = array_values(array_unique(array_filter(array_map('trim', $languages))));
+    if (count($languages) === 0) {
+        return [];
+    }
+
+    $validLanguages = ["English", "Mandarin", "Chinese", "Hindi", "Spanish", "French", "Arabic", "Bengali", "Portuguese", "Russian",
+        "Urdu", "Indonesian", "German", "Japanese", "Nigerian", "Egyptian Arabic", "Marathi", "Telugu", "Turkish",
+        "Tamil", "Cantonese", "Vietnamese", "Tagalog", "Korean", "Italian", "Hausa", "Thai", "Gujarati", "Javanese",
+        "Persian", "Farsi", "Polish", "Ukrainian", "Malayalam", "Kannada", "Odia", "Maithili",
+        "Burmese", "Sundanese", "Yoruba", "Amharic", "Romanian", "Pashto", "Serbo-Croatian", "Malay", "Zulu",
+        "Dutch", "Igbo", "Sinhalese"
+    ];
+
+    $languageMap = [];
+    foreach ($languages as $language) {
+        $normalized = ucfirst(strtolower(trim($language)));
+        if (in_array($normalized, $validLanguages, true)) {
+            $languageMap[$language] = $normalized;
+        }
+    }
+
+    return $languageMap;
+}
+
+function setUserPrefCountries(PDO $pdo, int $userId, array $countries): void
+{
+    $validCountriesMap = ensureCountriesExist($pdo, $countries);
+    $validCountries = array_values($validCountriesMap);
+
+    $deleteStmt = $pdo->prepare("DELETE FROM user_pref_country WHERE user_id = ?");
+    $deleteStmt->execute([$userId]);
+
+    if (count($validCountries) === 0) {
+        return;
+    }
+
+    $insertStmt = $pdo->prepare("
+        INSERT INTO user_pref_country (user_id, country)
+        VALUES (?, ?)
+    ");
+
+    foreach ($validCountries as $country) {
+        $insertStmt->execute([$userId, $country]);
+    }
+}
+
+function setUserPrefLanguages(PDO $pdo, int $userId, array $languages): void
+{
+    $validLanguagesMap = ensureLanguagesExist($pdo, $languages);
+    $validLanguages = array_values($validLanguagesMap);
+
+    $deleteStmt = $pdo->prepare("DELETE FROM user_pref_language WHERE user_id = ?");
+    $deleteStmt->execute([$userId]);
+
+    if (count($validLanguages) === 0) {
+        return;
+    }
+
+    $insertStmt = $pdo->prepare("
+        INSERT INTO user_pref_language (user_id, language)
+        VALUES (?, ?)
+    ");
+
+    foreach ($validLanguages as $language) {
+        $insertStmt->execute([$userId, $language]);
+    }
 }
 
 function ensureTopicsExist(PDO $pdo, array $topics): array
@@ -192,7 +282,7 @@ function ensureTopicsExist(PDO $pdo, array $topics): array
     return $topicIds;
 }
 
-function setUserPrefTopics(PDO $pdo, int $userId, array $topics, string $prefType = 'selected'): void
+function setUserPrefTopics(PDO $pdo, int $userId, array $topics): void
 {
     $topicIdsByName = ensureTopicsExist($pdo, $topics);
     $topicIds = array_map(function($id) { return (int) $id; }, array_values($topicIdsByName));
@@ -205,9 +295,9 @@ function setUserPrefTopics(PDO $pdo, int $userId, array $topics, string $prefTyp
         return;
     }
 
-    $insertStmt = $pdo->prepare("INSERT INTO user_pref_topic (user_id, topic_id, pref_type) VALUES (?, ?, ?)");
+    $insertStmt = $pdo->prepare("INSERT INTO user_pref_topic (user_id, topic_id) VALUES (?, ?)");
     foreach ($topicIds as $topicId) {
-        $insertStmt->execute([$userId, $topicId, $prefType]);
+        $insertStmt->execute([$userId, $topicId]);
     }
 }
 
@@ -241,7 +331,7 @@ function ensureSourcesExist(PDO $pdo, array $sources): array
     return $sourceIds;
 }
 
-function setUserPrefSources(PDO $pdo, int $userId, array $sources, string $prefType = 'selected'): void
+function setUserPrefSources(PDO $pdo, int $userId, array $sources): void
 {
     $sourceIdsByName = ensureSourcesExist($pdo, $sources);
     $sourceIds = array_map(function ($id) {
@@ -256,12 +346,12 @@ function setUserPrefSources(PDO $pdo, int $userId, array $sources, string $prefT
     }
 
     $insertStmt = $pdo->prepare("
-        INSERT INTO user_pref_source (user_id, source_id, pref_type)
-        VALUES (?, ?, ?)
+        INSERT INTO user_pref_source (user_id, source_id)
+        VALUES (?, ?)
     ");
 
     foreach ($sourceIds as $sourceId) {
-        $insertStmt->execute([$userId, $sourceId, $prefType]);
+        $insertStmt->execute([$userId, $sourceId]);
     }
 }
 
@@ -277,37 +367,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         if ($section === "countries") {
             $customCountriesInput = parseCustomList(trim($_POST["countries_custom"] ?? ""));
-            $invalidCountries = [];
-            foreach ($customCountriesInput as $country) {
-                if (!in_array(strtoupper($country), $countriesOptions, true)) {
-                    $invalidCountries[] = $country;
-                }
-            }
-            if (!empty($invalidCountries)) {
-                $feedback = "Invalid country code(s): " . implode(", ", $invalidCountries) . ". Please use valid ISO country codes.";
+            $selectedCountries = parsePostedList("countries");
+            $allCountries = array_values(array_unique(array_merge($selectedCountries, $customCountriesInput)));
+
+            try {
+                setUserPrefCountries($pdo, $userId, $allCountries);
+                $preferences["countries"] = $allCountries;
+                $feedback = "Preferences updated.";
+                $feedbackType = "success";
+            } catch (Throwable $e) {
+                $feedback = "Could not save country preferences. " . $e->getMessage();
                 $feedbackType = "danger";
-            } else {
-                $preferences["countries"] = array_values(array_unique(array_merge(
-                    parsePostedList("countries"),
-                    $customCountriesInput
-                )));
             }
         } elseif ($section === "languages") {
             $customLanguagesInput = parseCustomList(trim($_POST["languages_custom"] ?? ""));
-            $invalidLanguages = [];
-            foreach ($customLanguagesInput as $language) {
-                if (!in_array(ucfirst(strtolower($language)), $languageOptions, true)) {
-                    $invalidLanguages[] = $language;
-                }
-            }
-            if (!empty($invalidLanguages)) {
-                $feedback = "Invalid language(s): " . implode(", ", $invalidLanguages) . ". Language is not supported. Please use valid language names.";
+            $selectedLanguages = parsePostedList("languages");
+            $allLanguages = array_values(array_unique(array_merge($selectedLanguages, $customLanguagesInput)));
+
+            try {
+                setUserPrefLanguages($pdo, $userId, $allLanguages);
+                $preferences["languages"] = $allLanguages;
+                $feedback = "Preferences updated.";
+                $feedbackType = "success";
+            } catch (Throwable $e) {
+                $feedback = "Could not save language preferences. " . $e->getMessage();
                 $feedbackType = "danger";
-            } else {
-                $preferences["languages"] = array_values(array_unique(array_merge(
-                    parsePostedList("languages"),
-                    $customLanguagesInput
-                )));
             }
         } elseif ($section === "sources") {
             $preferences["sources"] = array_values(array_unique(array_merge(
@@ -316,7 +400,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             )));
 
             try {
-                setUserPrefSources($pdo, $userId, $preferences["sources"], 'selected');
+                setUserPrefSources($pdo, $userId, $preferences["sources"]);
+                $feedback = "Preferences updated.";
+                $feedbackType = "success";
             } catch (Throwable $e) {
                 $feedback = "Could not save source preferences yet. " . $e->getMessage();
                 $feedbackType = "danger";
@@ -331,7 +417,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $preferences["topics"] = $updatedTopics;
 
             try {
-                setUserPrefTopics($pdo, $userId, $preferences["topics"], 'selected');
+                setUserPrefTopics($pdo, $userId, $preferences["topics"]);
+                $feedback = "Preferences updated.";
+                $feedbackType = "success";
             } catch (Throwable $e) {
                 $feedback = "Could not save topic preferences yet. " . $e->getMessage();
                 $feedbackType = "danger";
@@ -339,28 +427,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
             $feedback = "Unknown preference section.";
             $feedbackType = "danger";
-        }
-
-        if ($feedbackType !== "danger") {
-            $savePrefStmt = $pdo->prepare("
-                INSERT INTO user_preferences (user_id, countries, languages, sources, topics)
-                VALUES (?, ?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE
-                    countries = VALUES(countries),
-                    languages = VALUES(languages),
-                    sources = VALUES(sources),
-                    topics = VALUES(topics)
-            ");
-            $savePrefStmt->execute([
-                $userId,
-                json_encode($preferences["countries"]),
-                json_encode($preferences["languages"]),
-                json_encode($preferences["sources"]),
-                json_encode($preferences["topics"]),
-            ]);
-
-            $feedback = "Preferences updated.";
-            $feedbackType = "success";
         }
     }
 
