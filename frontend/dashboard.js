@@ -219,6 +219,7 @@ function articlePageUrl(post) {
         post.thread && post.thread.main_image ? post.thread.main_image : ""
     );
 	p.set("description", post.text || post.description || "");
+    p.set("from", "dashboard");
     return "article.php?" + p.toString();
 }
  
