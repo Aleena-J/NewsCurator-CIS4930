@@ -16,6 +16,7 @@ $date = isset($_GET["date"]) ? (string) $_GET["date"] : "";
 $language = isset($_GET["language"]) ? (string) $_GET["language"] : "";
 $image = isset($_GET["image"]) ? (string) $_GET["image"] : "";
 $description = isset($_GET["description"]) ? (string) $_GET["description"] : "";
+$from = isset($_GET["from"]) ? (string) $_GET["from"] : "search";
 if (trim($description) === "Full text is unavailable in the news API lite version") {
     $description = "";
 }
@@ -91,7 +92,7 @@ if ($url !== "") {
         <?php require_once './components/navbar.php'; ?>
 
         <div class="page-header">
-            <p class="mb-2"><a href="search.php" class="article-back-link">← Back to search</a></p>
+            <p class="mb-2"><a href="<?php echo $from === 'dashboard' ? 'dashboard.php' : 'search.php'; ?>" class="article-back-link">← Back to <?php echo $from === 'dashboard' ? 'home' : 'search'; ?></a></p>
             <div class="article-title-row">
                 <h1 class="article-page-title"><?php echo $title !== "" ? htmlspecialchars($title) : "Article"; ?></h1>
                 <div class="card-rating-badge" id="article-total-score">&#9733; <?php echo $averageRating; ?>/5</div>
