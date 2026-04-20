@@ -1,5 +1,6 @@
 var PROXY = "../backend/api/news_proxy.php";
 
+// map category filters to webz's 
 var CATEGORY_FILTER = {
     sport: "sport",
     politics: "politics",
@@ -20,6 +21,7 @@ var searchLoadedCount = 0;
 var seenArticleUrls = {};
 var searchRequestInFlight = false;
 
+// get search params from search page
 function buildSearchParams() {
     var kw = $("#search-keywords").val().trim();
     var country = $("#filter-country").val();
@@ -44,6 +46,7 @@ function snippetDisplayHtml(post) {
     return plain ? $("<div>").text(plain).html() : "";
 }
 
+// returns article date
 function articleDate(post) {
     if (post.published) {
         return post.published;
@@ -57,6 +60,7 @@ function articleDate(post) {
     return "";
 }
 
+// set params for navigating to article page
 function articlePageQuery(post) {
     var p = new URLSearchParams();
     p.set("url", post.url || "");
@@ -94,6 +98,7 @@ function formatArticleDate(isoStr) {
     });
 }
 
+// renders a search result card
 function makeCard(post) {
     var title = post.title || "No title";
     var url = post.url || "#";
@@ -141,6 +146,7 @@ function makeCard(post) {
     return card;
 }
 
+// build url to pass into news_proxy.php
 function buildProxyUrl(params) {
     var p = new URLSearchParams();
     if (params.q) {
@@ -158,11 +164,13 @@ function buildProxyUrl(params) {
     return PROXY + "?" + p.toString();
 }
 
+// remove not found articles
 function is404Title(post) {
     var title = (post && post.title ? String(post.title) : "").trim().toLowerCase();
     return title === "404";
 }
 
+// append determines if the call is for a fresh request or loading more articles for a preexisting one
 function loadNews(params, append) {
     if (append && !nextPageUrl) {
         return;
@@ -178,6 +186,7 @@ function loadNews(params, append) {
         url = buildProxyUrl(params);
     }
 
+    // determine if it should append the results
     if (!append) {
         searchLoadedCount = 0;
         seenArticleUrls = {};
@@ -192,6 +201,7 @@ function loadNews(params, append) {
         $("#search-load-more-btn").prop("disabled", true);
     }
 
+    // handle request to news_proxy.php
     $.ajax({
         url: url,
         method: "GET",
@@ -219,6 +229,7 @@ function loadNews(params, append) {
 
             var html = "";
             var added = 0;
+            // render cards for all returned articles
             for (var i = 0; i < posts.length; i++) {
                 var post = posts[i];
                 if (is404Title(post)) {
@@ -243,6 +254,7 @@ function loadNews(params, append) {
                 searchLoadedCount = added;
             }
 
+            // determine if there are still more in the request (whether to show the "Load More" button)
             var totalReported = Number(data.totalResults);
             var allLoaded =
                 Number.isFinite(totalReported) &&
@@ -284,6 +296,7 @@ function loadNews(params, append) {
 $("#search-form").on("submit", function (e) {
     e.preventDefault();
     var params = buildSearchParams();
+    // make sure keyword field is not empty and at least one filter is selected
     var hasAnyFilter =
         params.q !== "" ||
         params.country !== "" ||

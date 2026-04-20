@@ -146,18 +146,28 @@ try {
     $userSources = [];
 }
 
+//Load users country and language preferences from the database using user_id
 try {
-    //Load users country and language preferences from the database using user_id
-    $stmt = $pdo->prepare("SELECT countries, languages FROM user_preferences WHERE user_id = ?");
+    $stmt = $pdo->prepare("
+        SELECT country 
+        FROM user_pref_country upc
+        WHERE user_id = ?
+    ");
     $stmt->execute([$userId]);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($row) {
-        $userCountries = json_decode($row['countries'] ?? '[]', true) ?: [];
-        $userLanguages = json_decode($row['languages'] ?? '[]', true) ?: [];
-    }
+    $userCountries = $stmt->fetchAll(PDO::FETCH_COLUMN);
 } catch (Throwable $e) {
     $userCountries = [];
+}
+
+try {
+    $stmt = $pdo->prepare("
+        SELECT language 
+        FROM user_pref_language upl
+        WHERE user_id = ?
+    ");
+    $stmt->execute([$userId]);
+    $userLanguages = $stmt->fetchAll(PDO::FETCH_COLUMN);
+} catch (Throwable $e) {
     $userLanguages = [];
 }
 

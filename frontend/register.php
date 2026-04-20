@@ -1,5 +1,6 @@
 <?php
     session_start();
+    // redirect automatically to dashboard if user is logged in
     if (isset($_SESSION["user_id"])) {
         header("Location: ../frontend/dashboard.php");
         exit();
@@ -22,7 +23,9 @@
 <div class="container mt-5" style="max-width: 450px;">
     <h2 class="mb-4">Create Account</h2>
 
-    <?php if (isset($_GET['error'])): ?>
+    <?php
+    // Handle errors from register_handler.php
+    if (isset($_GET['error'])): ?>
         <div class="alert alert-danger">
             <?php
             if ($_GET['error'] === 'empty') echo "Please fill in all fields.";

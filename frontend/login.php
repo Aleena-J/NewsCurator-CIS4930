@@ -1,5 +1,6 @@
 <?php
     session_start();
+    // redirect automatically to dashboard if user is logged in
     if (isset($_SESSION["user_id"])) {
         header("Location: ../frontend/dashboard.php");
         exit();
@@ -23,11 +24,13 @@
 <div class="container mt-5" style="max-width: 450px;">
     <h2 class="mb-4">Login</h2>
 
-    <?php if (isset($_GET['error'])): ?>
+    <?php
+    // Handle errors from login_handler.php
+    if (isset($_GET['error'])): ?>
         <div class="alert alert-danger">
             <?php
             if ($_GET['error'] === 'empty') echo "Please fill in all fields.";
-            else echo "Invalid email or password.";
+            else echo "Invalid username or password.";
             ?>
         </div>
     <?php endif; ?>
@@ -55,10 +58,10 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
 $("#loginForm").on("submit", function(e) {
-    const email = $("input[name='email']").val().trim();
+    const username = $("input[name='username']").val().trim();
     const password = $("input[name='password']").val().trim();
 
-    if (email === "" || password === "") {
+    if (username === "" || password === "") {
         e.preventDefault();
         alert("Please fill in all fields.");
     }
