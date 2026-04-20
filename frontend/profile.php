@@ -13,7 +13,7 @@ $username = $_SESSION["username"] ?? "User";
 $feedback = "";
 $feedbackType = "";
 
-// Add two lists of all possible countries to their ISO codes and languages for validation when processing form submissions.
+// Add two lists of all possible countries (ISO codes) and languages for validation when processing form submissions.
 $countriesOptions = [
     "AF", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR",
     "AM", "AW", "AU", "AT", "AZ", "BS", "BH", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO",
@@ -74,6 +74,7 @@ function parsePostedList(string $field): array
     return array_values(array_unique($clean));
 }
 
+// Identify which of the currently saved topics are custom to keep them if the user doesn't explicitly uncheck them 
 function splitTopicsByCustom(array $savedTopics, array $defaultTopics): array
 {
     $normalizedDefaults = [];
@@ -96,6 +97,7 @@ function splitTopicsByCustom(array $savedTopics, array $defaultTopics): array
     return array_values(array_unique($customTopics));
 }
 
+// Fetch the current preferences for the user
 function getCurrentAccountData(PDO $pdo, int $userId): array
 {
     $countryItems = [];
@@ -144,6 +146,8 @@ function getCurrentAccountData(PDO $pdo, int $userId): array
     ];
 }
 
+// Ensure that the given countries exist in the database and return a mapping of original input to 
+// valid ISO codes. Invalid entries will be ignored.
 function ensureCountriesExist(PDO $pdo, array $countries): array
 {
     $countries = array_values(array_unique(array_filter(array_map('trim', $countries))));
@@ -179,6 +183,8 @@ function ensureCountriesExist(PDO $pdo, array $countries): array
     return $countryMap;
 }
 
+// Ensure that the given languages are valid and return a mapping of original input to valid language 
+// names. Invalid entries will be ignored.
 function ensureLanguagesExist(PDO $pdo, array $languages): array
 {
     $languages = array_values(array_unique(array_filter(array_map('trim', $languages))));
@@ -205,6 +211,8 @@ function ensureLanguagesExist(PDO $pdo, array $languages): array
     return $languageMap;
 }
 
+// Set the user's preferred countries, replacing any existing preferences. 
+// Countries that don't exist in the database will be ignored.
 function setUserPrefCountries(PDO $pdo, int $userId, array $countries): void
 {
     $validCountriesMap = ensureCountriesExist($pdo, $countries);
@@ -227,6 +235,7 @@ function setUserPrefCountries(PDO $pdo, int $userId, array $countries): void
     }
 }
 
+// Set the user's preferred languages, replacing any existing preferences.
 function setUserPrefLanguages(PDO $pdo, int $userId, array $languages): void
 {
     $validLanguagesMap = ensureLanguagesExist($pdo, $languages);
@@ -249,6 +258,7 @@ function setUserPrefLanguages(PDO $pdo, int $userId, array $languages): void
     }
 }
 
+// Ensure that the given topics exist in the database and return a mapping of original input to topic IDs.
 function ensureTopicsExist(PDO $pdo, array $topics): array
 {
     $topics = array_values(array_unique(array_filter(array_map('trim', $topics))));
@@ -282,6 +292,8 @@ function ensureTopicsExist(PDO $pdo, array $topics): array
     return $topicIds;
 }
 
+// Set the user's preferred topics, replacing any existing preferences. Topics that don't exist in the 
+// database will be created.
 function setUserPrefTopics(PDO $pdo, int $userId, array $topics): void
 {
     $topicIdsByName = ensureTopicsExist($pdo, $topics);
@@ -301,6 +313,8 @@ function setUserPrefTopics(PDO $pdo, int $userId, array $topics): void
     }
 }
 
+// Ensure that the given sources exist in the database and return a mapping of original input to 
+// source IDs.
 function ensureSourcesExist(PDO $pdo, array $sources): array
 {
     $sources = array_values(array_unique(array_filter(array_map('trim', $sources))));
@@ -331,6 +345,8 @@ function ensureSourcesExist(PDO $pdo, array $sources): array
     return $sourceIds;
 }
 
+// Set the user's preferred sources, replacing any existing preferences. Sources that don't exist in 
+// the database will be ignored.
 function setUserPrefSources(PDO $pdo, int $userId, array $sources): void
 {
     $sourceIdsByName = ensureSourcesExist($pdo, $sources);
@@ -365,6 +381,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $section = $_POST["section"] ?? "";
         $preferences = $accountData["preferences"];
 
+        // For each section, we combine the explicitly selected options with any custom options the 
+        // user entered. 
         if ($section === "countries") {
             $customCountriesInput = parseCustomList(trim($_POST["countries_custom"] ?? ""));
             $selectedCountries = parsePostedList("countries");
@@ -407,6 +425,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $feedback = "Could not save source preferences yet. " . $e->getMessage();
                 $feedbackType = "danger";
             }
+        // For topics, keep any previously saved custom topics that the user didn't explicitly uncheck.
         } elseif ($section === "topics") {
             $keptCustomTopics = parsePostedList("topics_custom_keep");
             $updatedTopics = array_values(array_unique(array_merge(
@@ -433,6 +452,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $accountData = getCurrentAccountData($pdo, $userId);
 }
 
+// Default options for the preferences forms. 
 $countriesOptions = ["US", "GB", "CA", "AU", "DE", "FR", "IN", "JP", "BR", "MX"];
 $languageOptions = ["English", "Spanish", "French", "German", "Italian", "Portuguese", "Arabic", "Russian", "Hindi"];
 $sourcesOptions = [
@@ -446,6 +466,7 @@ $sourcesOptions = [
 ];
 $topicsOptions = ["Politics", "Science", "Sports", "Technology", "Health", "Business", "Environment", "Education", "Economy", "Crime"];
 
+// Identify which of the currently saved preferences are custom to keep them selected and allow the user to remove them if they want to.
 $customCountries = array_values(array_diff($accountData["preferences"]["countries"], $countriesOptions));
 $customLanguages = array_values(array_diff($accountData["preferences"]["languages"], $languageOptions));
 $customSources = array_values(array_diff($accountData["preferences"]["sources"], $sourcesOptions));
