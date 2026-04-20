@@ -12,7 +12,7 @@
     <a class="brand" href="../frontend/dashboard.php">NewsCurator</a>
 
     <ul class="nav-links">
-        <li><a href="../frontend/dashboard.php" <?php if ($page == "../frontend/dashboard.php") echo 'class="active"'; ?>>Home</a></li>
+        <li class="nav-home"><a href="../frontend/dashboard.php" <?php if ($page == "../frontend/dashboard.php") echo 'class="active"'; ?>>Home</a></li>
         <li><a href="../frontend/search.php" <?php if ($page == "../frontend/search.php") echo 'class="active"'; ?>>Search</a></li>
     </ul>
 

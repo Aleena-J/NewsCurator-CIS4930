@@ -687,7 +687,15 @@ body {
 }
 
 @media (max-width: 600px) {
-  .navbar-custom .nav-links {
+  .navbar-custom {
+    padding: 0.6rem 0.3rem;
+    gap: 0.5rem;
+  }
+  .navbar-custom .brand {
+    font-size: 0.9rem;
+  }
+
+  .navbar-custom .nav-home, .nav-username {
     display: none;
   }
 
