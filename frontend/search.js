@@ -46,7 +46,7 @@ function snippetDisplayHtml(post) {
     return plain ? $("<div>").text(plain).html() : "";
 }
 
-// returns article date
+// returns article date by checking several possible fields
 function articleDate(post) {
     if (post.published) {
         return post.published;
@@ -84,7 +84,6 @@ function articlePageQuery(post) {
 }
 
 function formatArticleDate(isoStr) {
-
     var d = new Date(isoStr);
     if (isNaN(d.getTime())) {
         return isoStr;
@@ -175,6 +174,7 @@ function loadNews(params, append) {
     if (append && !nextPageUrl) {
         return;
     }
+    // defends against double clicking "Load More" button
     if (append && searchRequestInFlight) {
         return;
     }
@@ -236,6 +236,7 @@ function loadNews(params, append) {
                     continue;
                 }
                 var key = post.url || "";
+                // prevent duplicate articles
                 if (key && seenArticleUrls[key]) {
                     continue;
                 }
@@ -293,6 +294,7 @@ function loadNews(params, append) {
     });
 }
 
+// handle new queries
 $("#search-form").on("submit", function (e) {
     e.preventDefault();
     var params = buildSearchParams();
@@ -311,6 +313,7 @@ $("#search-form").on("submit", function (e) {
         $("#search-load-more-btn").hide();
         return;
     }
+    // check for max query length
     if (params.q.length > 100) {
         $("#search-results-info").text(
             "Max keyword length is 100 characters. Yours is " + params.keywords.length + "."
@@ -321,6 +324,7 @@ $("#search-form").on("submit", function (e) {
         $("#search-load-more-btn").hide();
         return;
     }
+    // default q param if no keywords entered
     if (!params.q || params.q.trim() === "") {
         params.q = "domain_rank:<2000";
     }
@@ -329,6 +333,7 @@ $("#search-form").on("submit", function (e) {
     loadNews(currentSearchParams, false);
 });
 
+// handle "Load More" button
 $("#search-load-more-btn").on("click", function () {
     loadNews(currentSearchParams, true);
 });
