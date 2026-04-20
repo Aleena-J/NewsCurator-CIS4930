@@ -1,6 +1,7 @@
 <?php
 session_start();
 
+// ensure user is logged in
 if (!isset($_SESSION["user_id"])) {
     header("Location: ../frontend/login.php");
     exit();
@@ -27,10 +28,12 @@ if (!isset($_SESSION["user_id"])) {
 
         <div class="search-page-wrap search-page-wide">
             <form id="search-form" class="search-page-form" action="#" method="get">
+                <!-- Keyword search for text in article title or body -->
                 <label for="search-keywords" class="form-label mb-1">Keywords</label>
                 <input type="search" id="search-keywords" class="form-control mb-3" maxlength="500"
                     placeholder="e.g. climate summit, election results">
 
+                <!-- Drop down of common countries -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <label for="filter-country" class="form-label small mb-1">Country</label>
@@ -48,6 +51,7 @@ if (!isset($_SESSION["user_id"])) {
                             <option value="MX">Mexico</option>
                         </select>
                     </div>
+                    <!-- Drop down of Common Languages -->
                     <div class="col-md-4">
                         <label for="filter-lang" class="form-label small mb-1">Language</label>
                         <select id="filter-lang" class="form-select form-select-sm">
@@ -63,6 +67,8 @@ if (!isset($_SESSION["user_id"])) {
                             <option value="hindi">Hindi</option>
                         </select>
                     </div>
+
+                    <!-- Dropdown of all webz API topics -->
                     <div class="col-md-4">
                         <label for="filter-category" class="form-label small mb-1">Category</label>
                         <select id="filter-category" class="form-select form-select-sm">
