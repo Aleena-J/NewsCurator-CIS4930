@@ -1,6 +1,7 @@
 <?php
 session_start();
 
+//Redirect unauthenticated users to the login pages by checking if user_id is set in session data
 if (!isset($_SESSION["user_id"])) {
     header("Location: ../frontend/login.php");
     exit();
@@ -8,6 +9,7 @@ if (!isset($_SESSION["user_id"])) {
 
 require_once "../backend/config/db.php";
 
+//Normalize language, country, and category to match Webz.IO API's expected values
 function normalizeCountry(string $country): string
 {
     return strtolower(trim($country));
@@ -50,7 +52,10 @@ function topicToCategoryFilter(string $topicName): ?string
     return $map[$key] ?? null;
 }
 
+//Function to build all the parameters connected to each dashboard topic tab to be read by dashboard.js
 function buildDashboardTabParams(?string $topicName, array $countries, array $languages, bool $popular = false): array {
+    //Popular queries use performance_score for virality
+    //Domain rank is used to filter to only the top 5000 news sites
     $q = $popular ? 'domain_rank:<5000 performance_score:>=3' : 'domain_rank:<5000';
 
 
@@ -67,6 +72,8 @@ function buildDashboardTabParams(?string $topicName, array $countries, array $la
     }
 
     $category = '';
+    //If the topic matches with something in the category map, use category parameter
+    //Otherwise, add the topic name to the 'q'/query part of the API call
     if ($topicName !== null && trim($topicName) !== '') {
         $mappedCategory = topicToCategoryFilter($topicName);
         if ($mappedCategory !== null) {
@@ -84,8 +91,10 @@ function buildDashboardTabParams(?string $topicName, array $countries, array $la
     ];
 }
 
+//Check for user preferred topics, otherwise set defaults
 $userTopics    = [];
 $defaultTopics = ['Politics', 'Science', 'Sports'];
+//Load user preferences from the database
 $userSources   = [];
 $userCountries = [];
 $userLanguages = [];
@@ -93,6 +102,7 @@ $userLanguages = [];
 try {
     $userId = (int)$_SESSION["user_id"];
 
+    //SQL call to the database to load users preferred topics using user_id
     $stmt = $pdo->prepare("
         SELECT DISTINCT t.name
         FROM user_pref_topic upt
@@ -110,10 +120,12 @@ try {
         }
     }
 } catch (Throwable $e) {
+    //Fallback - use default topics if call fails
     $userTopics = [];
 }
 
 try {
+    //Load users preferred news sources from database using user_id
     $stmt = $pdo->prepare("
         SELECT DISTINCT s.name
         FROM user_pref_source ups
@@ -135,6 +147,7 @@ try {
 }
 
 try {
+    //Load users country and language preferences from the database using user_id
     $stmt = $pdo->prepare("SELECT countries, languages FROM user_preferences WHERE user_id = ?");
     $stmt->execute([$userId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -148,9 +161,11 @@ try {
     $userLanguages = [];
 }
 
+//Set user topics to display if they exist, otherwise use defaults
 $topicsToDisplay = !empty($userTopics) ? $userTopics : $defaultTopics;
 $placeholderSources = $userSources;
 
+//Map user-facing source names to domains used in the API calls, frontend reads map to make calls
 $sourceDomainMap = [
     "cnn" => "cnn.com",
     "associated press" => "apnews.com",
@@ -186,6 +201,7 @@ foreach ($userSources as $src) {
         <p id="today-date"></p>
     </div>
 
+    <!-- Keyword search outside of user preferences/tabs -->
     <div class="search-bar-wrap">
         <div class="search-bar">
             <input type="text" id="search-input" placeholder="Search for news...">
@@ -193,6 +209,7 @@ foreach ($userSources as $src) {
         </div>
     </div>
 
+    <!-- Topic tabs -->
     <div class="topic-tabs-wrap">
         <ul class="topic-tabs">
             <li
@@ -215,6 +232,7 @@ foreach ($userSources as $src) {
         </ul>
     </div>
 
+    <!-- Source tabs, hidden until a topic is selected -->
     <div id="source-tabs-wrap" style="display:none;">
         <ul class="source-tabs" id="source-tabs-list">
             <?php foreach ($placeholderSources as $src): ?>
@@ -228,16 +246,20 @@ foreach ($userSources as $src) {
         </ul>
     </div>
 
+    <!-- Num results display -->
     <div class="results-info" id="results-info"></div>
 
+    <!-- News cards display -->
     <div class="news-grid-wrap">
         <div id="news-grid"></div>
     </div>
 
+    <!-- Load more button for pagination -->
     <div id="load-more-wrap">
         <button id="load-more-btn">Load More</button>
     </div>
 
+    <!-- Pop up for rating and comment -->
     <div id="rating-popup" class="rating-popup-overlay" style="display:none;">
             <div class="rating-popup-box">
                 <h3>Rate this article</h3>
@@ -265,6 +287,7 @@ foreach ($userSources as $src) {
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script>
+        //Debugging statements - show user preferences
         var userCountries = <?php echo json_encode($userCountries); ?>;
         var userLanguages = <?php echo json_encode($userLanguages); ?>;
         var userSources   = <?php echo json_encode($userSources); ?>;
@@ -272,7 +295,7 @@ foreach ($userSources as $src) {
     </script>
     <script src="dashboard.js?v=<?php echo filemtime(__DIR__ . '/dashboard.js'); ?>"></script>
     <script>
-        //debug statements
+        //debug statements, show the query parameters sent
         console.group("Dashboard pre-built queries (PHP)");
         console.log("Popular :", <?php echo json_encode(
             buildDashboardTabParams(null, $userCountries, $userLanguages, true)
