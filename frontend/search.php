@@ -49,7 +49,11 @@ if (!isset($_SESSION["user_id"])) {
                             <option value="JP">Japan</option>
                             <option value="BR">Brazil</option>
                             <option value="MX">Mexico</option>
+                            <option value="__custom__">Custom...</option>
                         </select>
+                        <!-- Custom country input box -->
+                        <input type="text" id="filter-country-custom" class="form-control form-control-sm mt-2 d-none"
+                            maxlength="60" placeholder="Enter country code (e.g. CN)">
                     </div>
                     <!-- Drop down of Common Languages -->
                     <div class="col-md-4">
@@ -65,7 +69,11 @@ if (!isset($_SESSION["user_id"])) {
                             <option value="arabic">Arabic</option>
                             <option value="russian">Russian</option>
                             <option value="hindi">Hindi</option>
+                            <option value="__custom__">Custom...</option>
                         </select>
+                        <!-- custom language input box -->
+                        <input type="text" id="filter-lang-custom" class="form-control form-control-sm mt-2 d-none"
+                            maxlength="60" placeholder="Enter language (e.g. Korean)">
                     </div>
 
                     <!-- Dropdown of all webz API topics -->

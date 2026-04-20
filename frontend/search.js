@@ -21,11 +21,48 @@ var searchLoadedCount = 0;
 var seenArticleUrls = {};
 var searchRequestInFlight = false;
 
+// normalize values for language (lowercased) and country (uppercased)
+function normalizeCustomFilterValue(val, forceUppercase) {
+    var cleaned = (val || "").trim();
+    if (cleaned === "") {
+        return "";
+    }
+    return forceUppercase ? cleaned.toUpperCase() : cleaned.toLowerCase();
+}
+
+// return country val (accounting for custom)
+function selectedCountryValue() {
+    var selected = $("#filter-country").val();
+    if (selected === "__custom__") {
+        return normalizeCustomFilterValue($("#filter-country-custom").val(), true);
+    }
+    return selected || "";
+}
+
+// return language val (accounting for custom)
+function selectedLanguageValue() {
+    var selected = $("#filter-lang").val();
+    if (selected === "__custom__") {
+        return normalizeCustomFilterValue($("#filter-lang-custom").val(), false);
+    }
+    return selected || "";
+}
+
+// shows/hides custom input box
+function toggleCustomFilterInput(selectId, inputId) {
+    var selectVal = $(selectId).val();
+    if (selectVal === "__custom__") {
+        $(inputId).removeClass("d-none");
+    } else {
+        $(inputId).addClass("d-none").val("");
+    }
+}
+
 // get search params from search page
 function buildSearchParams() {
     var kw = $("#search-keywords").val().trim();
-    var country = $("#filter-country").val();
-    var lang = $("#filter-lang").val();
+    var country = selectedCountryValue();
+    var lang = selectedLanguageValue();
     var catKey = $("#filter-category").val();
 
     return {
@@ -337,3 +374,14 @@ $("#search-form").on("submit", function (e) {
 $("#search-load-more-btn").on("click", function () {
     loadNews(currentSearchParams, true);
 });
+
+// toggle custom input boxes
+
+$("#filter-country").on("change", function () {
+    toggleCustomFilterInput("#filter-country", "#filter-country-custom");
+});
+
+$("#filter-lang").on("change", function () {
+    toggleCustomFilterInput("#filter-lang", "#filter-lang-custom");
+});
+
