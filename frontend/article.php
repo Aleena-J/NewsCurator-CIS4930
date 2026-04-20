@@ -1,13 +1,18 @@
 <?php
+// start session
 session_start();
 
+// if user not loggd in, redirect to login page
 if (!isset($_SESSION["user_id"])) {
     header("Location: ../frontend/login.php");
     exit();
 }
+
+// east time zone
 date_default_timezone_set('America/New_York');
 require_once "../backend/config/db.php";
 
+// get article data from URL parameters (GET)
 $url = isset($_GET["url"]) ? (string) $_GET["url"] : "";
 $title = isset($_GET["title"]) ? (string) $_GET["title"] : "";
 $publisher = isset($_GET["publisher"]) ? (string) $_GET["publisher"] : "";
@@ -22,7 +27,7 @@ if (trim($description) === "Full text is unavailable in the news API lite versio
 }
 
 
-
+// formats the date
 function formatDate($originalDate)
 {
     if ($originalDate === "") {
@@ -35,6 +40,7 @@ function formatDate($originalDate)
     return date("M j, Y, g:i A", $ts);
 }
 
+// helper function to render a label/value row
 function line($label, $value)
 {
     if ($value === "") $value = '<span class="text-muted">N/A</span>';
@@ -45,6 +51,7 @@ function line($label, $value)
 $comments = [];
 $averageRating = "0.0";
 
+// if article url exists, fetch comments and rating
 if ($url !== "") {
     try {
 		$stmt = $pdo->prepare("
@@ -93,8 +100,10 @@ if ($url !== "") {
 
         <div class="page-header">
             <p class="mb-2"><a href="<?php echo $from === 'dashboard' ? 'dashboard.php' : 'search.php'; ?>" class="article-back-link">← Back to <?php echo $from === 'dashboard' ? 'home' : 'search'; ?></a></p>
-            <div class="article-title-row">
+            <!-- Page header with title and average rating -->
+			<div class="article-title-row">
                 <h1 class="article-page-title"><?php echo $title !== "" ? htmlspecialchars($title) : "Article"; ?></h1>
+				<!-- Average rating badge -->
                 <div class="card-rating-badge" id="article-total-score">&#9733; <?php echo $averageRating; ?>/5</div>
             </div>
 				<?php if ($publisher !== "") { ?>
@@ -138,6 +147,7 @@ if ($url !== "") {
                 </dl>
             </div>
             <div class="article-rate-actions">
+				<!-- Rate article button -->
                <button 
 					type="button" 
 					class="article-rate-btn" 
@@ -148,7 +158,8 @@ if ($url !== "") {
 				</button>
             </div>
         </div>
-
+		
+		<!-- Rating popup (hidden until triggered by JS) -->
         <div id="rating-popup" class="rating-popup-overlay" style="display:none;">
             <div class="rating-popup-box">
                 <h3>Rate this article</h3>
@@ -174,6 +185,7 @@ if ($url !== "") {
             </div>
         </div>
 		
+		<!-- Comments section -->
 		<div class="article-comments-section">
 			<h2 class="comments-heading">Reviews</h2>
 

@@ -1,22 +1,28 @@
+// initial variables storing user currently selected star rating and article id
 var selectedRating = 0;
 var currentArticleId = "";
 
+// When the user clicks on the "Rate this article" button.
 $(document).on("click", ".article-rate-btn", function() {
-  var articleTitle = $(this).data("title");
-  currentArticleId = $(this).data("id");
-  selectedRating = 0;
-
-  $(".star").removeClass("selected hovered");
+  var articleTitle = $(this).data("title"); // article title
+  currentArticleId = $(this).data("id"); // article ID (URL)
+  selectedRating = 0; // selected rating
+  
+  $(".star").removeClass("selected hovered"); // clear previously selected or hovered stars
   $("#star-label").text("Select a rating");
   $("#rating-submit-btn").prop("disabled", true);
 
   $("#rating-popup-title").text(articleTitle);
-
+	
+	//show the rating popup
   $("#rating-popup").fadeIn(150);
 });
 
+// when hovering over a star
 $(document).on("mouseenter", ".star", function() {
-  var val = parseInt($(this).data("value"));
+  var val = parseInt($(this).data("value")); // value of star
+  
+  // highlights all stars up to the one chosen
   $(".star").each(function() {
       if (parseInt($(this).data("value")) <= val) {
           $(this).addClass("hovered");
@@ -26,12 +32,12 @@ $(document).on("mouseenter", ".star", function() {
   });
 });
 
-
+// when mouse leaves the whole star row
 $(document).on("mouseleave", ".star-row", function() {
   $(".star").removeClass("hovered");
 });
 
-
+// When user clicks a star to chose a rating
 $(document).on("click", ".star", function() {
   selectedRating = parseInt($(this).data("value"));
   $(".star").each(function() {
@@ -45,15 +51,17 @@ $(document).on("click", ".star", function() {
   $("#rating-submit-btn").prop("disabled", false);
 });
 
-
+// when the user clicks the submit button
 $("#rating-submit-btn").on("click", function () {
     var comment = $("#rating-comment").val().trim();
 
+	// checks rating was selected
     if (!selectedRating) {
         alert("Please select a rating.");
         return;
     }
 
+	// send rating and comment to backend using AJAX
 	$.ajax({
 		url: "submit_rating.php",
 		method: "POST",
@@ -69,7 +77,8 @@ $("#rating-submit-btn").on("click", function () {
 				return;
 			}
 
-			addCommentToPage(response.comment);
+			addCommentToPage(response.comment); // Add or update the user's comment on page
+			
 			$("#article-total-score").html("&#9733; " + response.avg_rating + "/5");
 			$("#rating-message").text(response.message);
 
@@ -78,7 +87,8 @@ $("#rating-submit-btn").on("click", function () {
 			$(".star").removeClass("selected hovered");
 			$("#star-label").text("Select a rating");
 			$("#rating-submit-btn").prop("disabled", true);
-
+			
+			//close popup after short delay
 			setTimeout(() => {
 				$("#rating-popup").fadeOut(150);
 				$("#rating-message").text("");
@@ -91,17 +101,19 @@ $("#rating-submit-btn").on("click", function () {
 });
 
 
+// When user clicks cancel button, close popup
 $("#rating-cancel-btn").on("click", function() {
   $("#rating-popup").fadeOut(150);
 });
 
-
+// Close popup if user clicks outside the popup box
 $("#rating-popup").on("click", function(e) {
   if ($(e.target).is("#rating-popup")) {
       $("#rating-popup").fadeOut(150);
   }
 });
 
+// Adds a new comment to the page or replaces existing one from same user
 function addCommentToPage(comment) {
     $("#no-comments-msg").remove();
 
@@ -115,8 +127,10 @@ function addCommentToPage(comment) {
     var filledStars = "★".repeat(rating);
     var emptyStars = "☆".repeat(5 - rating);
 
+	// Remove previous comment from same user so it does not duplicate
     $("#comments-list .comment-card[data-user-id='" + comment.user_id + "']").remove();
 
+	// Build HTML for the new/updated comment card
     var commentHtml = `
         <div class="comment-card" data-user-id="${comment.user_id}">
             <div class="comment-header">
@@ -136,6 +150,7 @@ function addCommentToPage(comment) {
     $("#comments-list").show().prepend(commentHtml);
 }
 
+// Escapes text so special HTML characters are not interpreted as code
 function escapeHtml(text) {
     return $("<div>").text(text).html();
 }
