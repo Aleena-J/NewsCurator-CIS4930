@@ -3,12 +3,15 @@
         session_start();
     }
 
+    //Display different navbar states depending on whether user is logged in or not
+    //Store this info in variables
     $loggedIn = isset($_SESSION["user_id"]);
     $username = $loggedIn ? $_SESSION["username"] : "";
     $page = basename($_SERVER['PHP_SELF']);
 ?>
 
 <nav class="navbar-custom">
+    <!-- Brand links to the home page -->
     <a class="brand" href="../frontend/dashboard.php">NewsCurator</a>
 
     <ul class="nav-links">
@@ -18,10 +21,12 @@
 
     <div class="nav-right">
         <?php if ($loggedIn) { ?>
+        <!--Logged in users see greeting, profile page, logout -->
             <span class="nav-username">Hi, <?php echo htmlspecialchars($username); ?>!</span>
             <a href="../frontend/profile.php" class="btn-nav btn-nav-outline">Profile</a>
             <a href="../backend/auth/logout.php" class="btn-nav btn-nav-solid">Logout</a>
         <?php } else { ?>
+        <!-- Guests see login/register  -->
             <a href="../frontend/login.php" class="btn-nav btn-nav-outline">Login</a>
             <a href="../frontend/register.php" class="btn-nav btn-nav-solid">Register</a>
         <?php } ?>

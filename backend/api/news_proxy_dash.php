@@ -2,9 +2,11 @@
     require_once __DIR__ . '/../config/env.php';
     header('Content-Type: application/json');
 
+    //Get stored api credentials in server-side env variable
     $apiKey = $_ENV['API_KEY'] ?? '';
 
     if (isset($_GET['next'])) {
+        //Pagination requests use the 'next' parameter in the API
         $next = $_GET['next'];
         if (strpos($next, 'http') === 0) {
             $url = $next;
@@ -12,6 +14,8 @@
             $url = "https://api.webz.io" . $next;
         }
     } else {
+        //Base query for dashboard
+        //News-only, highlight snippets, newest-first ordering
         $params = [
             'token' => $apiKey,
             'sort' => 'crawled',
@@ -21,6 +25,7 @@
         ];
 
         if (!empty($_GET['q'])) {
+            // q can contain special characters, preserve them to be encoded later (>=, =<, ...)
             $params['q'] = rawurldecode($_GET['q']);
         }
         
@@ -28,6 +33,7 @@
             $params['category'] = $_GET['category'];
         }
 
+        //If no meaningful filters were given, fall back to default
         if (empty($params['q']) && empty($params['country']) && empty($params['language']) && empty($params['category'])) {
             $params['q'] = "performance_score:>=3 domain_rank:<5000";
         }
@@ -48,12 +54,15 @@
         if ($c !== '') $query .= '&country=' . rawurlencode($c);
         }
 
+        //Build final API call URL from parameters.
         $url = "https://api.webz.io/newsApiLite?" . $query;
         
     }
 
+    //Fetch API response
     $response = file_get_contents($url);
     $out = json_decode($response, true);
+    //If response is not valid JSON, return raw body for debugging purposes
     if (!is_array($out)) {
     $out = ["_raw" => $response];
     }
